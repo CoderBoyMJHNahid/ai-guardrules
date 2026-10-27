@@ -1,0 +1,58 @@
+{
+  "name": "ai-rules",
+  "version": "0.1.0",
+  "description": "One command to install shared rules, enforced hooks and guardrails for AI coding agents (Cursor, Claude Code, Gemini CLI, Windsurf, Copilot, Codex, Cline).",
+  "keywords": [
+    "ai",
+    "guardrails",
+    "rules",
+    "hooks",
+    "cursor",
+    "claude-code",
+    "gemini-cli",
+    "windsurf",
+    "copilot",
+    "codex",
+    "cline",
+    "agents-md",
+    "security"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "ai-rules": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run typecheck && npm run build && npm test"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "commander": "^15.0.0",
+    "jsonc-parser": "^3.3.1",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "fast-check": "^4.10.2",
+    "tsup": "^9.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
