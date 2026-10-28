@@ -37,16 +37,33 @@ describe('the guard never crashes and always returns a valid decision', () => {
   }
 });
 
+/**
+ * True when the text starts with git once empty leading segments (stray separators,
+ * grouping characters and comment lines) are ignored. The guard skips those, so
+ * `; git status` is just `git status`.
+ */
+const startsWithGit = (cmd: string): boolean => /^(?:[\s!({;&|]|#[^\n]*)*(time\s+|command\s+|builtin\s+)*git\s/.test(cmd);
+
 describe('strict preset: an unprompted allow only happens for read-only git', () => {
   it('holds for arbitrary text', () => {
     fc.assert(
       fc.property(fc.oneof(noisyCommand, rawString), (cmd) => {
         const v = decideStrict(cmd, 'bash');
         if (v.decision !== 'allow') return true;
-        return /^[\s!({]*(time\s+|command\s+|builtin\s+)*git\s/.test(cmd);
+        return startsWithGit(cmd);
       }),
       { numRuns: 800 },
     );
+  });
+
+  it('allows read-only git behind empty leading segments (regression for a flaky counterexample)', () => {
+    for (const cmd of ['; git status', '& git status', '# note\ngit status']) {
+      expect(startsWithGit(cmd)).toBe(true);
+      expect(decideStrict(cmd, 'bash').decision).not.toBe('deny');
+    }
+    expect(decideStrict('; git status', 'bash').decision).toBe('allow');
+    expect(startsWithGit('; rm x')).toBe(false);
+    expect(startsWithGit('echo hi; git status')).toBe(false);
   });
 
   it('holds for chains built from git and other tokens', () => {

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { planSetup } from '../src/commands/setup.js';
 import { applyChanges } from '../src/core/project.js';
+import { canonicalPath } from '../src/guard/paths.js';
 import type { ToolId } from '../src/adapters/types.js';
 import type { PresetName } from '../src/core/rules-text.js';
 
@@ -18,7 +19,7 @@ export interface Installed {
 
 /** A real temp project with ai-rules installed through the same code path as `init`. */
 export function installProject(preset: PresetName = 'strict', tools: ToolId[] = ['claude', 'cursor', 'gemini', 'windsurf', 'codex', 'agents'], files: Record<string, string> = {}): Installed {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-proj-')));
+  const root = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-proj-')));
   const base: Record<string, string> = { '.env': 'SECRET=1\n', 'src/a.ts': 'export {}\n', 'existing.txt': 'x\n', 'package.json': '{"name":"t"}\n' };
   for (const [rel, content] of Object.entries({ ...base, ...files })) {
     const abs = path.join(root, rel);

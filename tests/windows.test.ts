@@ -59,3 +59,30 @@ describe('windows path semantics (injected path.win32)', () => {
     expect(run(ctx, fileCall(ctx.root, 'write', 'C:\\proj\\claude.md', 'Write')).verdict.decision).not.toBe('allow');
   });
 });
+
+describe('windows 8.3 short names (RUNNER~1 vs runneradmin)', () => {
+  const LONG = 'C:\\Users\\runneradmin\\AppData\\Local\\Temp\\proj';
+  const SHORT = 'C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\proj';
+  const toLong = (p: string): string => p.replace(/RUNNER~1/gi, 'runneradmin');
+
+  /** Like the native realpath on Windows: short names come back expanded. */
+  function ctxWithRoot(root: string) {
+    const files = ['.env', 'existing.txt', 'src\\a.ts'];
+    const existing = [SHORT, LONG, ...files.flatMap((f) => [`${SHORT}\\${f}`, `${LONG}\\${f}`])];
+    const base = winCtx('strict', existing);
+    return { ...base, root, env: { ...base.env, realpath: toLong } };
+  }
+
+  it('a root canonicalized the same way as resolved paths is not a boundary violation', () => {
+    const ctx = ctxWithRoot(toLong(SHORT));
+    expect(run(ctx, shellCall(ctx.root, 'type .env', 'cmd')).verdict.guard).toBe('secrets');
+    expect(run(ctx, shellCall(ctx.root, 'Remove-Item src\\a.ts', 'powershell')).verdict.guard).toBe('fileDelete');
+    expect(run(ctx, shellCall(ctx.root, 'git status', 'cmd')).verdict.decision).toBe('allow');
+    expect(run(ctx, shellCall(ctx.root, 'type src\\a.ts', 'cmd')).verdict).toMatchObject({ decision: 'ask', guard: 'commands' });
+  });
+
+  it('a root left in short form is what produced the false boundary block', () => {
+    const ctx = ctxWithRoot(SHORT);
+    expect(run(ctx, shellCall(ctx.root, 'git status', 'cmd')).verdict.guard).toBe('boundary');
+  });
+});

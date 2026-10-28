@@ -5,7 +5,7 @@ import { loadCustomGuards, loadCustomHooks, runCustomHooks } from './custom.js';
 import { consumeGrants, loadGrants } from './grants.js';
 import { verifyLock } from './integrity.js';
 import { normalize, render, renderFailure, type AgentId, type Outcome, type Output } from './normalize.js';
-import { defaultEnv, type PathEnv } from './paths.js';
+import { canonicalPath, defaultEnv, type PathEnv } from './paths.js';
 import { validatePolicy } from './policy.js';
 import { RANK, type Call, type Grant, type Verdict } from './types.js';
 
@@ -27,7 +27,7 @@ function toOutcome(v: Verdict): Outcome {
 
 /** Evaluate one hook payload. Throws on any internal problem; callers must fail closed. */
 export function evaluate(agent: AgentId, payload: unknown, dir: string, opts: EvalOptions = {}): EvalResult {
-  const root = fs.realpathSync(path.dirname(dir));
+  const root = canonicalPath(path.dirname(dir));
 
   const lock = verifyLock(dir);
   if (!lock.ok) {

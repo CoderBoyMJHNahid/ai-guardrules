@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { decide, type DecideCtx } from '../src/guard/decide.js';
-import { defaultEnv } from '../src/guard/paths.js';
+import { canonicalPath, defaultEnv } from '../src/guard/paths.js';
 import { presetPolicy } from '../src/guard/policy.js';
 import type { Call, CallKind, CustomGuard, Dialect, Grant, Policy } from '../src/guard/types.js';
 
@@ -12,7 +12,7 @@ export interface Project {
 }
 
 export function makeProject(files: Record<string, string> = {}): Project {
-  const base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-test-')));
+  const base = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-test-')));
   const defaults: Record<string, string> = {
     '.env': 'SECRET=1',
     '.env.example': 'SECRET=',

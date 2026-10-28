@@ -20,6 +20,15 @@ export interface PathEnv {
   vars: Record<string, string>;
 }
 
+/**
+ * Canonical form of an existing path. Uses the native realpath so Windows 8.3 short
+ * names (RUNNER~1) are expanded. The project root and every resolved path must go
+ * through this same function, or `isInside` compares short names to long names.
+ */
+export function canonicalPath(p: string): string {
+  return (fs.realpathSync.native ?? fs.realpathSync)(p);
+}
+
 export function defaultEnv(root?: string): PathEnv {
   const win = process.platform === 'win32';
   const home = os.homedir();
@@ -35,7 +44,7 @@ export function defaultEnv(root?: string): PathEnv {
     platform: win ? 'win32' : 'posix',
     caseInsensitive: win || process.platform === 'darwin',
     home,
-    realpath: (p) => (fs.realpathSync.native ?? fs.realpathSync)(p),
+    realpath: canonicalPath,
     exists: (p) => fs.existsSync(p),
     isSymlink: (p) => {
       try {

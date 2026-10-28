@@ -1,14 +1,13 @@
-import fs from 'node:fs';
 import { decide, type DecideCtx, type DecideResult } from '../guard/decide.js';
 import { loadCustomGuards } from '../guard/custom.js';
 import { loadGrants } from '../guard/grants.js';
-import { defaultEnv } from '../guard/paths.js';
+import { canonicalPath, defaultEnv } from '../guard/paths.js';
 import type { Call, Dialect } from '../guard/types.js';
 import { aiDir, readPolicy } from './project.js';
 
 /** Build the same decision context the guard uses, for CLI previews and tests. */
 export function previewCtx(root: string, o: { withGrants?: boolean } = {}): DecideCtx {
-  const real = fs.realpathSync(root);
+  const real = canonicalPath(root);
   const policy = readPolicy(root);
   if (!policy) throw new Error('ai-rules is not installed here. Run "npx ai-rules init".');
   return {

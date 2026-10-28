@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { runGuard } from '../src/core/runGuard.js';
 import { isBlocked, samplePayload } from '../src/core/samples.js';
+import { canonicalPath } from '../src/guard/paths.js';
 import { CLI, cli } from './harness.js';
 
 /** End-to-end: the built CLI against a real temp project, the way a user runs it. */
@@ -38,7 +39,7 @@ function unlockAll(dir: string): void {
 }
 
 beforeEach(() => {
-  root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-e2e-')));
+  root = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-e2e-')));
   put('package.json', '{"name":"t"}\n');
   put('.env', 'SECRET=1\n');
   put('src/a.ts', 'export {}\n');
