@@ -35,7 +35,7 @@ interface Attack {
 const ATTACKS: Attack[] = [
   { name: 'read a secret (cat .env)', kind: 'shell', value: () => 'cat .env', presets: ['strict', 'standard'] },
   { name: 'read a secret file with the file tool', kind: 'read', value: (r) => path.join(r, '.env'), presets: ['strict', 'standard'] },
-  { name: 'edit the guardrails', kind: 'write', value: (r) => path.join(r, '.ai-rules', 'policy.json'), presets: ['strict', 'standard'] },
+  { name: 'edit the guardrails', kind: 'write', value: (r) => path.join(r, '.ai-guardrules', 'policy.json'), presets: ['strict', 'standard'] },
   { name: 'drop a database table', kind: 'shell', value: () => 'psql -c "DROP TABLE users"', presets: ['strict', 'standard'] },
   { name: 'force push', kind: 'shell', value: () => 'git push --force', presets: ['strict', 'standard'] },
   { name: 'recursive delete of the filesystem root', kind: 'shell', value: () => 'rm -rf /', presets: ['strict', 'standard'] },
@@ -45,10 +45,10 @@ const ATTACKS: Attack[] = [
 ];
 
 function withTempGuard(guardPath: string, fn: (dir: string) => void): void {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-doctor-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-guardrules-doctor-'));
   try {
-    fs.mkdirSync(path.join(tmp, '.ai-rules'));
-    fs.copyFileSync(guardPath, path.join(tmp, '.ai-rules', 'guard.mjs'));
+    fs.mkdirSync(path.join(tmp, '.ai-guardrules'));
+    fs.copyFileSync(guardPath, path.join(tmp, '.ai-guardrules', 'guard.mjs'));
     fn(tmp);
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
@@ -76,7 +76,7 @@ export function selfTest(root: string, tools: ToolId[], preset: 'strict' | 'stan
   if (agents.length) {
     const agent = agents[0] as AgentId;
     withTempGuard(guard, (tmp) => {
-      const r = runGuard(path.join(tmp, '.ai-rules', 'guard.mjs'), agent, samplePayload(agent, 'shell', 'git status', tmp), tmp);
+      const r = runGuard(path.join(tmp, '.ai-guardrules', 'guard.mjs'), agent, samplePayload(agent, 'shell', 'git status', tmp), tmp);
       out.push({ group: 'Self-test', label: 'blocks everything when policy and lock files are missing', ok: isBlocked(agent, r), critical: true });
     });
   }
@@ -90,16 +90,16 @@ export function runDoctor(root: string, o: { selfTest?: boolean } = {}): DoctorC
   };
   const manifest = readManifest(root);
   if (!manifest || !fs.existsSync(aiPath(root, 'guard.mjs'))) {
-    add({ group: 'Install', label: 'ai-rules is installed', ok: false, critical: true, detail: 'Run "npx ai-rules init".' });
+    add({ group: 'Install', label: 'ai-guardrules is installed', ok: false, critical: true, detail: 'Run "npx ai-guardrules init".' });
     return checks;
   }
-  add({ group: 'Install', label: `ai-rules ${manifest.packageVersion}, preset ${manifest.preset}`, ok: true, critical: false });
+  add({ group: 'Install', label: `ai-guardrules ${manifest.packageVersion}, preset ${manifest.preset}`, ok: true, critical: false });
 
   const major = Number(process.versions.node.split('.')[0]);
   add({ group: 'Install', label: `Node ${process.versions.node} (guard needs 20 or newer)`, ok: major >= 20, critical: true, detail: 'Hooks run with the node found on PATH.' });
 
   const lock = verifyLock(aiDir(root));
-  add({ group: 'Integrity', label: 'guard, policy and custom files match the lock', ok: lock.ok, critical: true, detail: lock.ok ? undefined : lock.problems.join('; ') + '. If you made these changes, run "ai-rules lock".' });
+  add({ group: 'Integrity', label: 'guard, policy and custom files match the lock', ok: lock.ok, critical: true, detail: lock.ok ? undefined : lock.problems.join('; ') + '. If you made these changes, run "ai-guardrules lock".' });
   try {
     validatePolicy(JSON.parse(readText(aiPath(root, 'policy.json')) ?? ''));
     add({ group: 'Integrity', label: 'policy.json is valid', ok: true, critical: true });
@@ -119,7 +119,7 @@ export function runDoctor(root: string, o: { selfTest?: boolean } = {}): DoctorC
     }
   }
   const writable = READ_ONLY_FILES.filter((f) => fs.existsSync(aiPath(root, f)) && !isReadOnly(aiPath(root, f)));
-  add({ group: 'Integrity', label: 'guard files are read-only', ok: writable.length === 0, critical: false, detail: writable.length ? `Writable: ${writable.join(', ')}. Run "ai-rules lock".` : undefined });
+  add({ group: 'Integrity', label: 'guard files are read-only', ok: writable.length === 0, critical: false, detail: writable.length ? `Writable: ${writable.join(', ')}. Run "ai-guardrules lock".` : undefined });
 
   const ctx: AdapterCtx = { root, preset: manifest.preset, customRules: readCustomRules(root), localWrapper: manifest.localWrapper, force: false };
   for (const tool of manifest.tools) {

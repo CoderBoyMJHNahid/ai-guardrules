@@ -28,7 +28,7 @@ describe.each(AGENTS)('%s contract', (agent) => {
   it('blocks git push in strict', () => {
     const r = runGuard(strict.guard, agent, samplePayload(agent, 'shell', 'git push origin main', strict.root), strict.root);
     expect(isBlocked(agent, r), JSON.stringify(r)).toBe(true);
-    expect(r.stderr + r.stdout).toContain('ai-rules');
+    expect(r.stderr + r.stdout).toContain('ai-guardrules');
   });
 
   it('blocks reading .env with the file tool', () => {
@@ -116,13 +116,13 @@ describe('agent-specific output', () => {
     const r = runGuard(strict.guard, 'gemini', samplePayload('gemini', 'shell', 'npm test', strict.root), strict.root);
     expect(r.code).toBe(2);
     expect(r.stderr).toMatch(/cannot prompt/);
-    expect(r.stderr).toMatch(/ai-rules allow/);
+    expect(r.stderr).toMatch(/ai-guardrules allow/);
   });
 
   it('codex parses apply_patch into file checks', () => {
     const patch = (body: string) => ({ session_id: 's', cwd: strict.root, hook_event_name: 'PreToolUse', tool_name: 'apply_patch', tool_input: { command: `*** Begin Patch\n${body}\n*** End Patch` } });
     expect(isBlocked('codex', runGuard(strict.guard, 'codex', patch('*** Delete File: existing.txt'), strict.root))).toBe(true);
-    expect(isBlocked('codex', runGuard(strict.guard, 'codex', patch('*** Update File: .ai-rules/policy.json\n@@\n-a\n+b'), strict.root))).toBe(true);
+    expect(isBlocked('codex', runGuard(strict.guard, 'codex', patch('*** Update File: .ai-guardrules/policy.json\n@@\n-a\n+b'), strict.root))).toBe(true);
     expect(isBlocked('codex', runGuard(strict.guard, 'codex', patch('*** Update File: existing.txt\n@@\n-x\n+y'), strict.root))).toBe(false);
     expect(isBlocked('codex', runGuard(strict.guard, 'codex', patch('*** Update File: a.txt\n*** Move to: ../elsewhere.txt'), strict.root))).toBe(true);
   });
@@ -169,7 +169,7 @@ describe('integrity', () => {
   it('denies everything after the guard or policy is tampered with', () => {
     const p = installProject('strict');
     try {
-      const policy = path.join(p.root, '.ai-rules', 'policy.json');
+      const policy = path.join(p.root, '.ai-guardrules', 'policy.json');
       fs.chmodSync(policy, 0o644);
       fs.writeFileSync(policy, fs.readFileSync(policy, 'utf8').replace('"commands": "ask"', '"commands": "off"'));
       const r = runGuard(p.guard, 'claude', samplePayload('claude', 'shell', 'git status', p.root), p.root);
@@ -183,8 +183,8 @@ describe('integrity', () => {
   it('denies everything when lock.json is deleted', () => {
     const p = installProject('strict');
     try {
-      fs.chmodSync(path.join(p.root, '.ai-rules', 'lock.json'), 0o644);
-      fs.rmSync(path.join(p.root, '.ai-rules', 'lock.json'));
+      fs.chmodSync(path.join(p.root, '.ai-guardrules', 'lock.json'), 0o644);
+      fs.rmSync(path.join(p.root, '.ai-guardrules', 'lock.json'));
       expect(runGuard(p.guard, 'claude', samplePayload('claude', 'read', path.join(p.root, 'src/a.ts'), p.root), p.root).code).toBe(2);
     } finally {
       p.cleanup();
@@ -194,8 +194,8 @@ describe('integrity', () => {
   it('denies when an unlocked custom file appears', () => {
     const p = installProject('strict');
     try {
-      fs.mkdirSync(path.join(p.root, '.ai-rules', 'custom'), { recursive: true });
-      fs.writeFileSync(path.join(p.root, '.ai-rules', 'custom', 'guards.json'), '{"guards":[]}');
+      fs.mkdirSync(path.join(p.root, '.ai-guardrules', 'custom'), { recursive: true });
+      fs.writeFileSync(path.join(p.root, '.ai-guardrules', 'custom', 'guards.json'), '{"guards":[]}');
       expect(runGuard(p.guard, 'claude', samplePayload('claude', 'shell', 'git status', p.root), p.root).code).toBe(2);
     } finally {
       p.cleanup();
@@ -206,7 +206,7 @@ describe('integrity', () => {
     const p = installProject('strict');
     try {
       for (const f of ['policy.json', 'guard.mjs']) {
-        const file = path.join(p.root, '.ai-rules', f);
+        const file = path.join(p.root, '.ai-guardrules', f);
         fs.chmodSync(file, 0o644);
         fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/\n/g, '\r\n'));
       }

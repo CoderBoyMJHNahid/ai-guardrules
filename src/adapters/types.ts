@@ -14,7 +14,7 @@ export interface Change {
 export interface AdapterCtx {
   root: string;
   preset: PresetName;
-  /** Contents of .ai-rules/custom/rules.md. */
+  /** Contents of .ai-guardrules/custom/rules.md. */
   customRules: string;
   /** Write the stricter machine-local hook wrapper instead of the shared one (Claude only). */
   localWrapper: boolean;

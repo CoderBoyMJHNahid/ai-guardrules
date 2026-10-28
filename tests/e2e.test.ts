@@ -39,7 +39,7 @@ function unlockAll(dir: string): void {
 }
 
 beforeEach(() => {
-  root = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-e2e-')));
+  root = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-guardrules-e2e-')));
   put('package.json', '{"name":"t"}\n');
   put('.env', 'SECRET=1\n');
   put('src/a.ts', 'export {}\n');
@@ -86,14 +86,14 @@ describe('init -> refresh -> remove', () => {
     const first = cli(root, 'init', '--all', '-y');
     expect(first.code, first.out).toBe(0);
     expect(first.out).toContain('Self-test passed');
-    for (const f of ['.ai-rules/guard.mjs', '.ai-rules/policy.json', '.ai-rules/lock.json', '.cursor/hooks.json', '.gemini/settings.json', '.devin/hooks.json', '.codex/hooks.json']) expect(has(...f.split('/')), f).toBe(true);
+    for (const f of ['.ai-guardrules/guard.mjs', '.ai-guardrules/policy.json', '.ai-guardrules/lock.json', '.cursor/hooks.json', '.gemini/settings.json', '.devin/hooks.json', '.codex/hooks.json']) expect(has(...f.split('/')), f).toBe(true);
 
     // User content survived next to ours.
     expect(read('CLAUDE.md')).toContain('hello');
     expect(read('CLAUDE.md')).not.toMatch(/[^\r]\n/); // CRLF kept
     expect(read('.claude', 'settings.json')).toContain('// mine');
     expect(read('.claude', 'settings.json')).toContain('echo mine');
-    expect(read('.claude', 'settings.json')).toContain('.ai-rules/guard.mjs');
+    expect(read('.claude', 'settings.json')).toContain('.ai-guardrules/guard.mjs');
     expect(read('.codex', 'config.toml')).toContain('model = "o3"');
     expect(read('AGENTS.md')).toContain('Be kind.');
 
@@ -103,14 +103,14 @@ describe('init -> refresh -> remove', () => {
     expect(second.out).toMatch(/already up to date/);
     const afterSecond = snapshot();
     // Ignore only the backup directory (written once, never again).
-    const strip = (s: Record<string, string>) => Object.fromEntries(Object.entries(s).filter(([k]) => !k.startsWith('.ai-rules/backups/')));
+    const strip = (s: Record<string, string>) => Object.fromEntries(Object.entries(s).filter(([k]) => !k.startsWith('.ai-guardrules/backups/')));
     expect(strip(afterSecond)).toEqual(strip(afterFirst));
 
     const rm = cli(root, 'remove', '-y');
     expect(rm.code, rm.out).toBe(0);
     unlockAll(root);
     const after = snapshot();
-    expect(Object.keys(after).filter((k) => k.startsWith('.ai-rules/'))).toEqual([]);
+    expect(Object.keys(after).filter((k) => k.startsWith('.ai-guardrules/'))).toEqual([]);
     for (const [f, c] of Object.entries(before)) {
       // JSON may be re-indented where we inserted our entry, but comments and content must survive.
       if (f === '.claude/settings.json') {
@@ -164,7 +164,7 @@ describe('init -> refresh -> remove', () => {
     cli(root, 'update');
     cli(root, 'update');
     const json = JSON.parse(read('.claude', 'settings.json')) as { hooks: { PreToolUse: unknown[] } };
-    const ours = json.hooks.PreToolUse.filter((e) => JSON.stringify(e).includes('.ai-rules/guard.mjs'));
+    const ours = json.hooks.PreToolUse.filter((e) => JSON.stringify(e).includes('.ai-guardrules/guard.mjs'));
     expect(ours.length).toBe(1);
     expect(json.hooks.PreToolUse.length).toBe(2);
   });
@@ -176,7 +176,7 @@ describe('everyday commands on an installed project', () => {
     expect(r.code, r.out).toBe(0);
   });
 
-  const guard = () => rel('.ai-rules', 'guard.mjs');
+  const guard = () => rel('.ai-guardrules', 'guard.mjs');
   const payload = (kind: 'shell' | 'read' | 'write', value: string, agent: 'claude' | 'cursor' = 'claude') => runGuard(guard(), agent, samplePayload(agent, kind, value, root), root);
 
   it('status and doctor are healthy', () => {
@@ -222,8 +222,8 @@ describe('everyday commands on an installed project', () => {
     expect(cli(root, 'guard', 'test', 'curl x.com').out).toContain('DENY');
     expect(cli(root, 'remove', '-y', '--keep-custom').code).toBe(0);
     unlockAll(root);
-    expect(has('.ai-rules', 'custom', 'guards.json')).toBe(true);
-    expect(has('.ai-rules', 'guard.mjs')).toBe(false);
+    expect(has('.ai-guardrules', 'custom', 'guards.json')).toBe(true);
+    expect(has('.ai-guardrules', 'guard.mjs')).toBe(false);
   });
 
   it('policy set changes behaviour and hard guards cannot be relaxed', () => {
@@ -248,7 +248,7 @@ describe('everyday commands on an installed project', () => {
     });
 
     it('editing policy.json to allow everything is detected', () => {
-      const f = rel('.ai-rules', 'policy.json');
+      const f = rel('.ai-guardrules', 'policy.json');
       fs.chmodSync(f, 0o644);
       fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace(/"deny"/g, '"allow"'));
       expect(isBlocked('claude', payload('shell', 'git push'))).toBe(true);
@@ -256,14 +256,14 @@ describe('everyday commands on an installed project', () => {
     });
 
     it('a hand-made custom file is not trusted until the user runs lock', () => {
-      put('.ai-rules/custom/guards.json', '{"guards":[]}');
+      put('.ai-guardrules/custom/guards.json', '{"guards":[]}');
       expect(isBlocked('claude', payload('shell', 'git status'))).toBe(true);
       expect(cli(root, 'lock').code).toBe(0);
       expect(isBlocked('claude', payload('shell', 'git status'))).toBe(false);
     });
 
     it('deleting the lock blocks everything', () => {
-      const f = rel('.ai-rules', 'lock.json');
+      const f = rel('.ai-guardrules', 'lock.json');
       fs.chmodSync(f, 0o644);
       fs.rmSync(f);
       expect(isBlocked('claude', payload('shell', 'git status'))).toBe(true);

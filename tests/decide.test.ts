@@ -210,12 +210,12 @@ describe('self protection', () => {
   table('strict', [
     ['sed -i s/a/b/ CLAUDE.md', 'deny', 'selfProtection'],
     ['echo x >> AGENTS.md', 'deny', 'selfProtection'],
-    ['mv .ai-rules/guard.mjs x', 'deny', 'selfProtection'],
-    ['chmod 777 .ai-rules/policy.json', 'deny', 'selfProtection'],
+    ['mv .ai-guardrules/guard.mjs x', 'deny', 'selfProtection'],
+    ['chmod 777 .ai-guardrules/policy.json', 'deny', 'selfProtection'],
     ['tee .claude/settings.json', 'deny', 'selfProtection'],
     ['rm .cursor/hooks.json', 'deny'],
-    ['npx ai-rules allow "rm -rf x"', 'deny', 'selfProtection'],
-    ['ai-rules grants revoke --all', 'deny', 'selfProtection'],
+    ['npx ai-guardrules allow "rm -rf x"', 'deny', 'selfProtection'],
+    ['ai-guardrules grants revoke --all', 'deny', 'selfProtection'],
     ['cat CLAUDE.md', 'ask'],
     ['grep rules AGENTS.md', 'ask'],
     ['git diff .claude/settings.json', 'allow'],
@@ -223,7 +223,7 @@ describe('self protection', () => {
   it('blocks file tools on protected paths but allows reads', () => {
     const ctx = ctxFor(proj.root);
     expect(run(ctx, fileCall(proj.root, 'edit', 'CLAUDE.md', 'Edit')).verdict.guard).toBe('selfProtection');
-    expect(run(ctx, fileCall(proj.root, 'write', '.ai-rules/guard.mjs')).verdict.decision).toBe('deny');
+    expect(run(ctx, fileCall(proj.root, 'write', '.ai-guardrules/guard.mjs')).verdict.decision).toBe('deny');
     expect(run(ctx, fileCall(proj.root, 'read', 'CLAUDE.md', 'Read')).verdict.decision).toBe('allow');
   });
 });
@@ -306,7 +306,7 @@ describe('grants', () => {
     expect(sh(ctx, 'cat .env').decision).toBe('deny');
     expect(sh(ctx, 'psql -c "DROP TABLE x"').decision).toBe('deny');
     expect(sh(ctx, 'git push --force').decision).toBe('deny');
-    expect(sh(ctx, 'ai-rules allow x').decision).toBe('deny');
+    expect(sh(ctx, 'ai-guardrules allow x').decision).toBe('deny');
   });
   it('honours expiry', () => {
     const ctx = ctxFor(proj.root, 'strict', { grants: [grant({ pattern: 'npm test', expiresAt: 1 })] });

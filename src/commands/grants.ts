@@ -44,14 +44,14 @@ export function runAllow(root: string, pattern: string, o: AllowOptions): void {
     const hard = r.candidates.filter((c) => !c.grantable);
     if (hard.length) out.warn(`This grant will not help: "${hard[0]?.guard}" is a fixed rule and can never be approved. ${hard[0]?.message}`);
   }
-  out.dim('Revoke it with: ai-rules grants revoke ' + grant.id);
+  out.dim('Revoke it with: ai-guardrules grants revoke ' + grant.id);
 }
 
 export function runAllowCreate(root: string, pattern: string, o: AllowOptions): void {
   requireInstalled(root);
   const grant = addGrant(root, 'create', pattern, o);
   out.ok(`Allowed ${describe(grant)}  ${pc.dim('id ' + grant.id)}`);
-  out.dim('Agents may now create files matching that pattern. Revoke with: ai-rules grants revoke ' + grant.id);
+  out.dim('Agents may now create files matching that pattern. Revoke with: ai-guardrules grants revoke ' + grant.id);
 }
 
 export function runGrantsList(root: string): void {
@@ -74,7 +74,7 @@ export function runGrantsRevoke(root: string, id: string | undefined, o: { all?:
     out.ok(`Revoked ${grants.length} grant${grants.length === 1 ? '' : 's'}.`);
     return;
   }
-  if (!id) throw new CliError('Give a grant id, or use --all. See "ai-rules grants list".');
+  if (!id) throw new CliError('Give a grant id, or use --all. See "ai-guardrules grants list".');
   const left = grants.filter((g) => g.id !== id);
   if (left.length === grants.length) throw new CliError(`No grant with id "${id}".`);
   saveGrants(aiDir(root), left);

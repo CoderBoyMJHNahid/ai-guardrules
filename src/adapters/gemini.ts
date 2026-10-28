@@ -7,7 +7,7 @@ const SETTINGS = '.gemini/settings.json';
 const PATH = ['hooks', 'BeforeTool'];
 
 function entry(): unknown {
-  return { matcher: '.*', hooks: [{ type: 'command', command: guardCommand('gemini'), name: 'ai-rules', timeout: 30000 }] };
+  return { matcher: '.*', hooks: [{ type: 'command', command: guardCommand('gemini'), name: 'ai-guardrules', timeout: 30000 }] };
 }
 
 function edit(root: string, fn: (ed: JsonEditor) => void): Change | null {
@@ -31,7 +31,7 @@ export const gemini: Adapter = {
     if (s) changes.push(s);
     const md = mdInstall(ctx.root, 'GEMINI.md', '@./AGENTS.md\n\n' + rulesBody(ctx.preset, ctx.customRules, 'pointer'), 'Gemini CLI rules (imports AGENTS.md)');
     if (md) changes.push(md);
-    return { changes, warnings: ['Gemini CLI cannot ask for approval from a hook, so anything that needs approval is blocked. Approve with "ai-rules allow".'] };
+    return { changes, warnings: ['Gemini CLI cannot ask for approval from a hook, so anything that needs approval is blocked. Approve with "ai-guardrules allow".'] };
   },
 
   uninstall(ctx: AdapterCtx): AdapterResult {

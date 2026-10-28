@@ -4,7 +4,7 @@ import { getPath, newJson, parseJsonc, setPath } from '../core/json.js';
 import { hasBlock, removeBlock, upsertBlock } from '../core/markdown.js';
 import type { Change } from './types.js';
 
-export const GUARD_REL = '.ai-rules/guard.mjs';
+export const GUARD_REL = '.ai-guardrules/guard.mjs';
 export const MARK = GUARD_REL;
 
 export function guardCommand(tool: string): string {

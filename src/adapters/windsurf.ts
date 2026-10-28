@@ -5,7 +5,7 @@ import type { Adapter, AdapterCtx, AdapterResult, Change, CheckItem } from './ty
 
 const DEVIN = '.devin/hooks.json';
 const LEGACY = '.windsurf/hooks.json';
-const RULE = '.windsurf/rules/ai-rules.md';
+const RULE = '.windsurf/rules/ai-guardrules.md';
 const EVENTS = ['pre_run_command', 'pre_read_code', 'pre_write_code', 'pre_mcp_tool_use'] as const;
 const HEADER = '---\ntrigger: always_on\n---\n\n';
 
@@ -43,7 +43,7 @@ export const windsurf: Adapter = {
     if (h) changes.push(h);
     const rule = mdInstall(ctx.root, RULE, rulesBody(ctx.preset, ctx.customRules, 'pointer'), 'Windsurf always-on rule', HEADER);
     if (rule) changes.push(rule);
-    return { changes, warnings: ['Windsurf hooks cannot ask for approval, so anything that needs approval is blocked. Approve with "ai-rules allow".'] };
+    return { changes, warnings: ['Windsurf hooks cannot ask for approval, so anything that needs approval is blocked. Approve with "ai-guardrules allow".'] };
   },
 
   uninstall(ctx: AdapterCtx): AdapterResult {

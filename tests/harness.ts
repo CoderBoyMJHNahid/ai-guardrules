@@ -17,9 +17,9 @@ export interface Installed {
   cleanup: () => void;
 }
 
-/** A real temp project with ai-rules installed through the same code path as `init`. */
+/** A real temp project with ai-guardrules installed through the same code path as `init`. */
 export function installProject(preset: PresetName = 'strict', tools: ToolId[] = ['claude', 'cursor', 'gemini', 'windsurf', 'codex', 'agents'], files: Record<string, string> = {}): Installed {
-  const root = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-proj-')));
+  const root = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-guardrules-proj-')));
   const base: Record<string, string> = { '.env': 'SECRET=1\n', 'src/a.ts': 'export {}\n', 'existing.txt': 'x\n', 'package.json': '{"name":"t"}\n' };
   for (const [rel, content] of Object.entries({ ...base, ...files })) {
     const abs = path.join(root, rel);
@@ -30,7 +30,7 @@ export function installProject(preset: PresetName = 'strict', tools: ToolId[] = 
   applyChanges(root, plan.changes);
   return {
     root,
-    guard: path.join(root, '.ai-rules', 'guard.mjs'),
+    guard: path.join(root, '.ai-guardrules', 'guard.mjs'),
     cleanup: () => {
       const walk = (d: string): void => {
         for (const e of fs.readdirSync(d, { withFileTypes: true })) {

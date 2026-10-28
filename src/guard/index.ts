@@ -1,6 +1,6 @@
 /**
- * ai-rules guard: copied to `<project>/.ai-rules/guard.mjs` and called by each agent's hook.
- * Usage: node .ai-rules/guard.mjs <agent>   (hook payload on stdin)
+ * ai-guardrules guard: copied to `<project>/.ai-guardrules/guard.mjs` and called by each agent's hook.
+ * Usage: node .ai-guardrules/guard.mjs <agent>   (hook payload on stdin)
  * Any failure blocks the action.
  */
 import path from 'node:path';
@@ -48,7 +48,7 @@ async function readStdin(): Promise<string> {
 
 async function main(): Promise<void> {
   if (agentArg === '--version') {
-    process.stdout.write('ai-rules guard\n');
+    process.stdout.write('ai-guardrules guard\n');
     return;
   }
   const timer = setTimeout(() => {

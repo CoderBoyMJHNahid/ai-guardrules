@@ -9,7 +9,7 @@ import { aiDir, readPolicy } from './project.js';
 export function previewCtx(root: string, o: { withGrants?: boolean } = {}): DecideCtx {
   const real = canonicalPath(root);
   const policy = readPolicy(root);
-  if (!policy) throw new Error('ai-rules is not installed here. Run "npx ai-rules init".');
+  if (!policy) throw new Error('ai-guardrules is not installed here. Run "npx ai-guardrules init".');
   return {
     root: real,
     policy,

@@ -14,7 +14,7 @@ export function runPolicyShow(root: string): void {
   const rows = GUARD_NAMES.map((g) => [g, policy.guards[g] ?? '?', HARD_GUARD_NAMES.includes(g) ? 'fixed at deny' : '', GUARD_DESCRIPTIONS[g]]);
   out.line(`Preset: ${policy.preset}`);
   out.line(table([['guard', 'mode', '', 'what it does'], ...rows]));
-  out.dim('\nChange one with: ai-rules policy set <guard> <allow|ask|deny|off>');
+  out.dim('\nChange one with: ai-guardrules policy set <guard> <allow|ask|deny|off>');
 }
 
 export function runPolicySet(root: string, guard: string, mode: string): void {

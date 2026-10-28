@@ -1,7 +1,7 @@
 import { detectEol, toEol } from './fsutil.js';
 
-export const START = '<!-- ai-rules:start -->';
-export const END = '<!-- ai-rules:end -->';
+export const START = '<!-- ai-guardrules:start -->';
+export const END = '<!-- ai-guardrules:end -->';
 
 export class MarkerError extends Error {}
 
@@ -9,8 +9,8 @@ function findBlock(text: string): { start: number; end: number } | null {
   const s = text.indexOf(START);
   const e = text.indexOf(END);
   if (s === -1 && e === -1) return null;
-  if (s === -1 || e === -1 || e < s) throw new MarkerError('found an incomplete ai-rules marker block');
-  if (text.indexOf(START, s + START.length) !== -1) throw new MarkerError('found more than one ai-rules marker block');
+  if (s === -1 || e === -1 || e < s) throw new MarkerError('found an incomplete ai-guardrules marker block');
+  if (text.indexOf(START, s + START.length) !== -1) throw new MarkerError('found more than one ai-guardrules marker block');
   return { start: s, end: e + END.length };
 }
 

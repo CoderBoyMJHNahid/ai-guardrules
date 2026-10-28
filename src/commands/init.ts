@@ -24,7 +24,7 @@ function parsePreset(v: string): PresetName {
 
 export async function runInit(root: string, o: InitOptions): Promise<void> {
   const major = Number(process.versions.node.split('.')[0]);
-  if (major < 20) throw new CliError(`ai-rules needs Node 20 or newer (found ${process.versions.node}).`);
+  if (major < 20) throw new CliError(`ai-guardrules needs Node 20 or newer (found ${process.versions.node}).`);
 
   const existing = readManifest(root);
   const interactive = isInteractive() && !o.yes;
@@ -84,7 +84,7 @@ export async function runInit(root: string, o: InitOptions): Promise<void> {
   }
 
   const applied = applyChanges(root, plan.changes);
-  out.heading(existing ? 'ai-rules refreshed' : 'ai-rules installed');
+  out.heading(existing ? 'ai-guardrules refreshed' : 'ai-guardrules installed');
   if (applied.length === 0) out.line('Everything was already up to date.');
   for (const a of applied) out.line(`  ${a.action.padEnd(8)} ${a.file}`);
 
@@ -101,9 +101,9 @@ export async function runInit(root: string, o: InitOptions): Promise<void> {
   if (failed > 0) {
     out.heading('Self-test found problems');
     for (const c of checks.filter((x) => !x.ok && x.critical)) out.fail(`${c.label}${c.detail ? ` - ${c.detail}` : ''}`);
-    throw new CliError('Install finished, but the self-test failed. Run "ai-rules doctor" for details.');
+    throw new CliError('Install finished, but the self-test failed. Run "ai-guardrules doctor" for details.');
   }
   out.heading('Self-test passed');
   out.line('The installed hooks blocked every attack payload we replayed through them.');
-  out.dim('Next: commit .ai-rules/ and the hook configs so teammates get the same guardrails. Approve a blocked action with "ai-rules allow".');
+  out.dim('Next: commit .ai-guardrules/ and the hook configs so teammates get the same guardrails. Approve a blocked action with "ai-guardrules allow".');
 }

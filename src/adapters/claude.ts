@@ -13,7 +13,7 @@ function sharedEntry(): unknown {
 
 /** Machine-local wrapper: also blocks when `node` is missing or the guard exits with an unexpected code. */
 function wrapperEntry(windows: boolean): unknown {
-  const line = 'node .ai-rules/guard.mjs --tool=claude';
+  const line = 'node .ai-guardrules/guard.mjs --tool=claude';
   const command = windows
     ? `powershell -NoProfile -Command "& ${line}; $c = $LASTEXITCODE; if ($null -eq $c -or ($c -ne 0 -and $c -ne 2)) { exit 2 }; exit $c"`
     : `${line}; c=$?; if [ "$c" -ne 0 ] && [ "$c" -ne 2 ]; then exit 2; fi; exit "$c"`;

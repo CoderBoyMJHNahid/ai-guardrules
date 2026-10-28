@@ -6,9 +6,9 @@ import type { Adapter, AdapterCtx, AdapterResult, Change, CheckItem } from './ty
 
 const HOOKS = '.cursor/hooks.json';
 const CLI = '.cursor/cli.json';
-const RULE = '.cursor/rules/ai-rules.mdc';
+const RULE = '.cursor/rules/ai-guardrules.mdc';
 const EVENTS = ['beforeShellExecution', 'beforeMCPExecution', 'beforeReadFile', 'preToolUse'] as const;
-const HEADER = '---\ndescription: ai-rules guardrails, enforced by hooks\nalwaysApply: true\n---\n\n';
+const HEADER = '---\ndescription: ai-guardrules guardrails, enforced by hooks\nalwaysApply: true\n---\n\n';
 
 function entry(): unknown {
   return { command: guardCommand('cursor'), timeout: 30, failClosed: true };

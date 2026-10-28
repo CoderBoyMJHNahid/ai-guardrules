@@ -45,6 +45,6 @@ jobs:
           npm pack --silent
           mkdir /tmp/demo && cd /tmp/demo
           echo '{"name":"demo"}' > package.json
-          npm install --no-audit --no-fund "$GITHUB_WORKSPACE"/ai-rules-*.tgz
-          npx --no-install ai-rules init --all -y
-          npx --no-install ai-rules doctor --ci
+          npm install --no-audit --no-fund "$GITHUB_WORKSPACE"/ai-guardrules-*.tgz
+          npx --no-install ai-guardrules init --all -y
+          npx --no-install ai-guardrules doctor --ci

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-/** Files inside `.ai-rules/` whose content is locked. grants.json and lock.json change at runtime. */
+/** Files inside `.ai-guardrules/` whose content is locked. grants.json and lock.json change at runtime. */
 export const LOCKED_FILES = ['guard.mjs', 'policy.json', 'custom/guards.json', 'custom/hooks.json', 'custom/rules.md'] as const;
 
 export interface LockFile {

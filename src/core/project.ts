@@ -10,7 +10,7 @@ import { newJson } from './json.js';
 import type { PresetName } from './rules-text.js';
 import { removeLinesBlock, upsertLinesBlock } from './textblock.js';
 
-export const AI_DIR = '.ai-rules';
+export const AI_DIR = '.ai-guardrules';
 
 export interface Manifest {
   version: 1;
@@ -38,13 +38,13 @@ function findPackageRoot(): string {
     const pj = path.join(dir, 'package.json');
     try {
       const j = JSON.parse(fs.readFileSync(pj, 'utf8')) as { name?: string };
-      if (j.name === 'ai-rules') return dir;
+      if (j.name === 'ai-guardrules') return dir;
     } catch {
       /* keep walking */
     }
     dir = path.dirname(dir);
   }
-  throw new Error('Cannot locate the ai-rules package files.');
+  throw new Error('Cannot locate the ai-guardrules package files.');
 }
 
 export function packageVersion(): string {
@@ -80,7 +80,7 @@ export function readPolicy(root: string): Policy | null {
   return validatePolicy(JSON.parse(t));
 }
 
-/** Notes the user wrote in .ai-rules/custom/rules.md (HTML comments are ignored). */
+/** Notes the user wrote in .ai-guardrules/custom/rules.md (HTML comments are ignored). */
 export function readCustomRules(root: string): string {
   const t = readText(aiPath(root, 'custom/rules.md')) ?? '';
   return t.replace(/<!--[\s\S]*?-->/g, '').trim();
@@ -123,8 +123,8 @@ export function mergePolicy(existing: Policy | null, preset: PresetName, presetC
 
 export const READ_ONLY_FILES = ['guard.mjs', 'policy.json', 'lock.json', 'custom/guards.json', 'custom/hooks.json'];
 
-const GITATTRIBUTES = ['.ai-rules/** -text eol=lf'];
-const GITIGNORE = ['.ai-rules/grants.json', '.ai-rules/backups/'];
+const GITATTRIBUTES = ['.ai-guardrules/** -text eol=lf'];
+const GITIGNORE = ['.ai-guardrules/grants.json', '.ai-guardrules/backups/'];
 
 function fileChange(root: string, rel: string, after: string | null, note: string): Change | null {
   const before = readText(path.join(root, rel));
@@ -176,7 +176,7 @@ function backupName(rel: string): string {
   return rel.replace(/[\\/]/g, '__');
 }
 
-/** Write planned changes. Pre-existing user files get a one-time backup in .ai-rules/backups/. */
+/** Write planned changes. Pre-existing user files get a one-time backup in .ai-guardrules/backups/. */
 export function applyChanges(root: string, changes: Change[], o: { dryRun?: boolean } = {}): Applied[] {
   const applied: Applied[] = [];
   for (const c of changes) {
@@ -184,7 +184,7 @@ export function applyChanges(root: string, changes: Change[], o: { dryRun?: bool
     const action: Applied['action'] = c.after === null ? 'removed' : c.before === null ? 'created' : 'updated';
     applied.push({ file: c.file, action });
     if (o.dryRun) continue;
-    if (c.before !== null && !c.file.startsWith(`${AI_DIR}/`) && !c.before.includes('ai-rules')) {
+    if (c.before !== null && !c.file.startsWith(`${AI_DIR}/`) && !c.before.includes('ai-guardrules')) {
       const dir = path.join(root, AI_DIR, 'backups');
       fs.mkdirSync(dir, { recursive: true });
       const target = path.join(dir, `${backupName(c.file)}.${Date.now()}.bak`);
@@ -221,7 +221,7 @@ export function writeLocked(root: string, rel: string, content: string): void {
   relock(root);
 }
 
-/** Plan removal of everything ai-rules created in the project-level shared files. */
+/** Plan removal of everything ai-guardrules created in the project-level shared files. */
 export function planRemoveCore(root: string): Change[] {
   const out: Change[] = [];
   for (const [rel, remove] of [
@@ -231,7 +231,7 @@ export function planRemoveCore(root: string): Change[] {
     const before = readText(path.join(root, rel));
     if (before === null) continue;
     const after = remove(before);
-    if (after !== before) out.push({ file: rel, before, after, note: 'ai-rules block' });
+    if (after !== before) out.push({ file: rel, before, after, note: 'ai-guardrules block' });
   }
   return out;
 }

@@ -1,20 +1,14 @@
 {
-  "name": "ai-rules",
+  "name": "ai-guardrules",
   "version": "0.1.0",
   "description": "One command to install shared rules, enforced hooks and guardrails for AI coding agents (Cursor, Claude Code, Gemini CLI, Windsurf, Copilot, Codex, Cline).",
   "keywords": [
     "ai",
-    "ai-rules",
-    "ai-rule",
-    "ai-rules-agent",
-    "ai-rules-cli",
-    "ai-rules-guardrails",
-    "ai-rules-hooks",
-    "ai-rules-rules",
-    "ai-rules-security",
-    "ai-rules-md",
-    "ai-rules-agents",
-    "ai-rules-agents-md",
+    "ai-guardrules",
+    "ai-guardrules-cli",
+    "ai-guardrules-hooks",
+    "ai-guardrules-security",
+    "ai-guardrules-agents",
     "guardrails",
     "rules",
     "hooks",
@@ -29,9 +23,17 @@
     "security"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CoderBoyMJHNahid/ai-guardrules.git"
+  },
+  "homepage": "https://github.com/CoderBoyMJHNahid/ai-guardrules#readme",
+  "bugs": {
+    "url": "https://github.com/CoderBoyMJHNahid/ai-guardrules/issues"
+  },
   "type": "module",
   "bin": {
-    "ai-rules": "dist/cli.js"
+    "ai-guardrules": "dist/cli.js"
   },
   "files": [
     "dist",

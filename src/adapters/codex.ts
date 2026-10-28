@@ -28,7 +28,7 @@ export const codex: Adapter = {
 
   install(ctx: AdapterCtx): AdapterResult {
     const changes: Change[] = [];
-    const warnings: string[] = ['Codex asks you to review new hooks once. Run /hooks in Codex and trust the ai-rules hook.', 'Codex hooks cannot ask for approval, so anything that needs approval is blocked. Approve with "ai-rules allow".'];
+    const warnings: string[] = ['Codex asks you to review new hooks once. Run /hooks in Codex and trust the ai-guardrules hook.', 'Codex hooks cannot ask for approval, so anything that needs approval is blocked. Approve with "ai-guardrules allow".'];
     const h = editHooks(ctx.root, (ed) => ed.set(PATH, withOurs(ed.get(PATH), entry())));
     if (h) changes.push(h);
     const before = readText(abs(ctx.root, CONFIG));

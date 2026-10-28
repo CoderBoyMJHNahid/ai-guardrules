@@ -312,17 +312,17 @@ function clip(s: string, n = 160): string {
 function approvalHint(o: Outcome, call: Call | undefined): string {
   if (!o.grantable) return 'This is a hard rule. It cannot be approved. Do not retry or work around it; tell the user.';
   let how = '';
-  if (call?.kind === 'shell') how = ` They can approve it with: ai-rules allow "${clip(call.command ?? '', 120).replace(/"/g, '\\"')}"`;
-  else if (o.grantKind === 'create' && call?.paths?.[0]) how = ` They can approve it with: ai-rules allow-create "${clip(call.paths[0], 120)}"`;
-  else if (o.grantKind === 'path' && call?.paths?.[0]) how = ` They can approve it with: ai-rules allow --path "${clip(call.paths[0], 120)}"`;
-  else if (call?.kind === 'mcp') how = ` They can approve it with: ai-rules allow "mcp:${call.mcp?.server ?? ''}:${call.mcp?.tool ?? call.toolName}"`;
-  else if (call?.kind === 'other') how = ` They can approve it with: ai-rules allow "tool:${call.toolName}"`;
+  if (call?.kind === 'shell') how = ` They can approve it with: ai-guardrules allow "${clip(call.command ?? '', 120).replace(/"/g, '\\"')}"`;
+  else if (o.grantKind === 'create' && call?.paths?.[0]) how = ` They can approve it with: ai-guardrules allow-create "${clip(call.paths[0], 120)}"`;
+  else if (o.grantKind === 'path' && call?.paths?.[0]) how = ` They can approve it with: ai-guardrules allow --path "${clip(call.paths[0], 120)}"`;
+  else if (call?.kind === 'mcp') how = ` They can approve it with: ai-guardrules allow "mcp:${call.mcp?.server ?? ''}:${call.mcp?.tool ?? call.toolName}"`;
+  else if (call?.kind === 'other') how = ` They can approve it with: ai-guardrules allow "tool:${call.toolName}"`;
   return `Do not retry or work around this. Ask the user in chat for permission.${how}`;
 }
 
 export function explain(o: Outcome, call: Call | undefined, askUnsupported: boolean): string {
   const lead = o.decision === 'ask' && !askUnsupported ? 'needs your approval' : o.decision === 'ask' ? 'needs approval, but this agent cannot prompt for it' : 'blocked';
-  return `[ai-rules] ${o.guard}: ${lead}. ${o.message} ${o.decision === 'allow' ? '' : approvalHint(o, call)}`.replace(/\s+/g, ' ').trim();
+  return `[ai-guardrules] ${o.guard}: ${lead}. ${o.message} ${o.decision === 'allow' ? '' : approvalHint(o, call)}`.replace(/\s+/g, ' ').trim();
 }
 
 /** Produce the agent-specific hook response. Decisions the agent cannot express become deny. */
@@ -340,7 +340,7 @@ export function render(agent: AgentId, call: Call | undefined, outcome: Outcome)
         return { stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: reason } }) + '\n', stderr: '', code: 0 };
       }
       if (outcome.explicit) {
-        return { stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow', permissionDecisionReason: outcome.message || 'allowed by ai-rules' } }) + '\n', stderr: '', code: 0 };
+        return { stdout: JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow', permissionDecisionReason: outcome.message || 'allowed by ai-guardrules' } }) + '\n', stderr: '', code: 0 };
       }
       return { stdout: '', stderr: '', code: 0 };
     }
@@ -365,7 +365,7 @@ export function render(agent: AgentId, call: Call | undefined, outcome: Outcome)
 
 /** Response used when the guard itself fails: always a block. */
 export function renderFailure(agent: AgentId | undefined, message: string): Output {
-  const reason = `[ai-rules] guard error: ${message}. The action was blocked. Tell the user to run "ai-rules doctor".`;
+  const reason = `[ai-guardrules] guard error: ${message}. The action was blocked. Tell the user to run "ai-guardrules doctor".`;
   if (agent === 'cursor') {
     return { stdout: JSON.stringify({ permission: 'deny', user_message: reason, agent_message: reason }) + '\n', stderr: reason + '\n', code: 2 };
   }

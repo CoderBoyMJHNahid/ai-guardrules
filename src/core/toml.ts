@@ -1,13 +1,13 @@
 import { detectEol, toEol } from './fsutil.js';
 
-export const T_START = '# ai-rules:start';
-export const T_END = '# ai-rules:end';
+export const T_START = '# ai-guardrules:start';
+export const T_END = '# ai-guardrules:end';
 
 function find(text: string): { start: number; end: number } | null {
   const s = text.indexOf(T_START);
   const e = text.indexOf(T_END);
   if (s === -1 && e === -1) return null;
-  if (s === -1 || e === -1 || e < s) throw new Error('found an incomplete ai-rules block in a TOML file');
+  if (s === -1 || e === -1 || e < s) throw new Error('found an incomplete ai-guardrules block in a TOML file');
   return { start: s, end: e + T_END.length };
 }
 

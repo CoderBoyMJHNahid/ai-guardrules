@@ -11,7 +11,7 @@ import { CliError, out, pc } from './ui.js';
 
 const program = new Command();
 program
-  .name('ai-rules')
+  .name('ai-guardrules')
   .description('Shared rules, enforced hooks and guardrails for AI coding agents')
   .version(packageVersion(), '-v, --version')
   .option('-C, --dir <path>', 'project folder (default: current folder)')
@@ -60,10 +60,10 @@ program.command('lock').description('Trust hand-made edits: refresh the integrit
 
 program
   .command('remove')
-  .description('Uninstall everything ai-rules added')
+  .description('Uninstall everything ai-guardrules added')
   .option('-y, --yes', 'do not ask for confirmation')
   .option('--dry-run', 'show what would be removed')
-  .option('--keep-custom', 'keep .ai-rules/custom/')
+  .option('--keep-custom', 'keep .ai-guardrules/custom/')
   .option('--all', 'try every tool, not only the installed ones')
   .action(wrap((o) => runRemove(root(), o)));
 

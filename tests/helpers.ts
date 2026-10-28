@@ -12,7 +12,7 @@ export interface Project {
 }
 
 export function makeProject(files: Record<string, string> = {}): Project {
-  const base = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-rules-test-')));
+  const base = canonicalPath(fs.mkdtempSync(path.join(os.tmpdir(), 'ai-guardrules-test-')));
   const defaults: Record<string, string> = {
     '.env': 'SECRET=1',
     '.env.example': 'SECRET=',
@@ -21,7 +21,7 @@ export function makeProject(files: Record<string, string> = {}): Project {
     'CLAUDE.md': '@AGENTS.md\n',
     'AGENTS.md': '# rules\n',
     '.claude/settings.json': '{}\n',
-    '.ai-rules/policy.json': '{}\n',
+    '.ai-guardrules/policy.json': '{}\n',
     'existing.txt': 'x\n',
     'dir/inside.txt': 'y\n',
   };

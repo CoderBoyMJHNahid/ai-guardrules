@@ -28,18 +28,18 @@ function saveRules(root: string, lines: string[]): void {
 export function runRuleAdd(root: string, text: string): void {
   requireInstalled(root);
   const t = text.replace(/\s+/g, ' ').trim();
-  if (!t) throw new CliError('Give the rule text, for example: ai-rules rule add "Use pnpm, never npm"');
+  if (!t) throw new CliError('Give the rule text, for example: ai-guardrules rule add "Use pnpm, never npm"');
   const lines = ruleLines(root);
   if (lines.includes(t)) throw new CliError('That rule already exists.');
   saveRules(root, [...lines, t]);
   out.ok(`Rule added and written to AGENTS.md and the other rule files: ${t}`);
-  out.dim('Rules are guidance for the agent. To actually block something, use "ai-rules guard add".');
+  out.dim('Rules are guidance for the agent. To actually block something, use "ai-guardrules guard add".');
 }
 
 export function runRuleList(root: string): void {
   requireInstalled(root);
   const lines = ruleLines(root);
-  if (lines.length === 0) out.line('No custom rules. Add one with: ai-rules rule add "..."');
+  if (lines.length === 0) out.line('No custom rules. Add one with: ai-guardrules rule add "..."');
   lines.forEach((l, i) => out.line(`  ${i + 1}. ${l}`));
 }
 
@@ -48,7 +48,7 @@ export function runRuleRemove(root: string, which: string): void {
   const lines = ruleLines(root);
   const n = Number(which);
   const idx = Number.isInteger(n) && n >= 1 && n <= lines.length ? n - 1 : lines.findIndex((l) => l === which);
-  if (idx < 0) throw new CliError(`No rule "${which}". See "ai-rules rule list".`);
+  if (idx < 0) throw new CliError(`No rule "${which}". See "ai-guardrules rule list".`);
   const [removed] = lines.splice(idx, 1);
   saveRules(root, lines);
   out.ok(`Removed: ${removed}`);
@@ -98,7 +98,7 @@ export function runGuardList(root: string): void {
   requireInstalled(root);
   const guards = guardsFile(root);
   if (guards.length === 0) {
-    out.line('No custom guards. Add one with: ai-rules guard add --id <id> --command <name> --match "<glob>" --decision deny --message "<why>"');
+    out.line('No custom guards. Add one with: ai-guardrules guard add --id <id> --command <name> --match "<glob>" --decision deny --message "<why>"');
     return;
   }
   out.line(table([['id', 'on', 'matches', 'decision', 'message'], ...guards.map((g) => [g.id, g.on, [g.command && `cmd=${g.command}`, g.match && `match=${g.match}`, g.path && `path=${g.path}`].filter(Boolean).join(' '), g.decision, g.message])]));
@@ -118,7 +118,7 @@ export function printDecision(r: ReturnType<typeof decide>): void {
   const colour = v.decision === 'allow' ? pc.green : v.decision === 'ask' ? pc.yellow : pc.red;
   out.line(`${colour(v.decision.toUpperCase())}  ${v.guard}`);
   if (v.message) out.line(`  ${v.message}`);
-  if (v.decision !== 'allow') out.line(`  grantable: ${v.grantable ? 'yes, with "ai-rules allow"' : 'no (fixed rule)'}`);
+  if (v.decision !== 'allow') out.line(`  grantable: ${v.grantable ? 'yes, with "ai-guardrules allow"' : 'no (fixed rule)'}`);
   if (r.candidates.length > 1) {
     out.dim('  all matching guards:');
     for (const c of r.candidates) out.dim(`    ${c.decision.padEnd(5)} ${c.guard}: ${c.message}`);
@@ -166,7 +166,7 @@ export function runHookList(root: string): void {
   requireInstalled(root);
   const hooks = hooksFile(root);
   if (hooks.length === 0) {
-    out.line('No custom hooks. Add one with: ai-rules hook add --id <id> --event before-shell --run "<command>"');
+    out.line('No custom hooks. Add one with: ai-guardrules hook add --id <id> --event before-shell --run "<command>"');
     return;
   }
   out.line(table([['id', 'event', 'run'], ...hooks.map((h) => [h.id, h.event, h.run])]));

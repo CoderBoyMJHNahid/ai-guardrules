@@ -34,7 +34,7 @@ export function evaluate(agent: AgentId, payload: unknown, dir: string, opts: Ev
     const outcome: Outcome = {
       decision: 'deny',
       guard: 'integrity',
-      message: `The guardrail files were changed outside ai-rules (${lock.problems.join('; ')}). Everything is blocked until the user runs "ai-rules lock" or "ai-rules update".`,
+      message: `The guardrail files were changed outside ai-guardrules (${lock.problems.join('; ')}). Everything is blocked until the user runs "ai-guardrules lock" or "ai-guardrules update".`,
       explicit: false,
       grantable: false,
     };

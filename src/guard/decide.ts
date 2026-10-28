@@ -229,8 +229,8 @@ function analyzeShell(call: Call, ctx: DecideCtx): ShellOutcome {
     const gitInfo = name === 'git' ? gitOf(cmd) : null;
     const sedWrite = (name === 'sed' || name === 'awk') && (lower.some((a) => /^-[a-z]*i/.test(a) || a === '--in-place' || a.startsWith('--in-place=')) || cmd.inline.some((i) => /\bsystem\s*\(/.test(i.code)));
     const readOnlyCmd = (READ_ONLY_CMDS.has(name) || ((name === 'sed' || name === 'awk') && !sedWrite) || (gitInfo?.readOnly ?? false)) && !(name === 'find' && (lower.includes('-delete') || lower.some((a) => a.startsWith('-exec'))));
-    if (name === 'ai-rules' || (!readOnlyCmd && (argv.some((a) => /(^|[\\/])ai-rules([\\/]|$)/i.test(a) && !isFlagWord(a, dialect)) || cmd.inline.some((i) => /\bai-rules\b/i.test(i.code))))) {
-      push(mk(ctx, 'selfProtection', 'Agents may not run or change ai-rules; only the user can change guardrails.', { grantable: false }));
+    if (name === 'ai-guardrules' || (!readOnlyCmd && (argv.some((a) => /(^|[\\/])ai-guardrules([\\/]|$)/i.test(a) && !isFlagWord(a, dialect)) || cmd.inline.some((i) => /\bai-guardrules\b/i.test(i.code))))) {
+      push(mk(ctx, 'selfProtection', 'Agents may not run or change ai-guardrules; only the user can change guardrails.', { grantable: false }));
     }
     for (const w of [...cmd.args, ...redirectTargets]) {
       const isRedirect = redirectTargets.includes(w);

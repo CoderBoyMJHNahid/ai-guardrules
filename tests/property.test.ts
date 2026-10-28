@@ -178,8 +178,8 @@ describe('paths', () => {
 });
 
 describe('markdown block merge', () => {
-  const body = fc.string({ minLength: 1, maxLength: 40 }).filter((s) => s.trim() !== '' && !s.includes('ai-rules'));
-  const doc = fc.array(fc.string({ maxLength: 30 }).filter((s) => !s.includes('ai-rules')), { maxLength: 6 }).map((l) => l.join('\n'));
+  const body = fc.string({ minLength: 1, maxLength: 40 }).filter((s) => s.trim() !== '' && !s.includes('ai-guardrules'));
+  const doc = fc.array(fc.string({ maxLength: 30 }).filter((s) => !s.includes('ai-guardrules')), { maxLength: 6 }).map((l) => l.join('\n'));
 
   it('is idempotent', () => {
     fc.assert(

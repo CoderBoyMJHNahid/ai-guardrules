@@ -29,4 +29,4 @@ export const agents = single('agents', 'AGENTS.md', 'canonical rules for Codex, 
 export const copilot = single('copilot', 'GitHub Copilot', 'instructions file (advisory, no blocking hooks)', ['.github/copilot-instructions.md', '.github/instructions'], () => '.github/copilot-instructions.md', 'pointer');
 
 /** `.clinerules` can be a file or a folder. */
-export const cline = single('cline', 'Cline', 'rules file (advisory, no blocking hooks)', ['.clinerules', '.clineignore'], (root) => (isFile(abs(root, '.clinerules')) ? '.clinerules' : '.clinerules/ai-rules.md'), 'pointer');
+export const cline = single('cline', 'Cline', 'rules file (advisory, no blocking hooks)', ['.clinerules', '.clineignore'], (root) => (isFile(abs(root, '.clinerules')) ? '.clinerules' : '.clinerules/ai-guardrules.md'), 'pointer');

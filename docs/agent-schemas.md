@@ -64,4 +64,4 @@ agent runs. Re-capture them when an agent releases a new hook schema.
 
 ## npm name
 
-`ai-rules` returned 404 on the registry on 2026-10-28 (unclaimed). `ai-guardrails` is taken by an unrelated package. Publishing needs `npm login`; no placeholder was published from this environment.
+`ai-guardrules` returned 404 on the registry on 2026-10-28 (unclaimed). `ai-guardrails` is taken by an unrelated package. Publishing needs `npm login`; no placeholder was published from this environment.

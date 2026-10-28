@@ -13,7 +13,7 @@ beforeEach(() => {
 });
 afterEach(() => p.cleanup());
 
-const dir = () => path.join(p.root, '.ai-rules');
+const dir = () => path.join(p.root, '.ai-guardrules');
 const shell = (command: string) => evaluateSafe('claude', samplePayload('claude', 'shell', command, p.root), dir()).outcome;
 const node = (code: string) => `node -e "${code.replace(/"/g, '\\"')}"`;
 const addHook = (id: string, run: string, extra: string[] = []) => {

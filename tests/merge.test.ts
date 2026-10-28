@@ -158,7 +158,7 @@ describe('json editing', () => {
   });
 
   it('adds and removes our hook entry without touching the rest', () => {
-    const ours = { hooks: [{ type: 'command', command: 'node .ai-rules/guard.mjs --tool=claude' }] };
+    const ours = { hooks: [{ type: 'command', command: 'node .ai-guardrules/guard.mjs --tool=claude' }] };
     const ed = new JsonEditor(user, 'f.json');
     ed.set(['hooks', 'PreToolUse'], withOurs(ed.get(['hooks', 'PreToolUse']), ours));
     ed.set(['hooks', 'PreToolUse'], withOurs(ed.get(['hooks', 'PreToolUse']), ours));
@@ -185,7 +185,7 @@ describe('json editing', () => {
   });
 
   it('list helpers', () => {
-    expect(isOurs({ command: 'node .ai-rules/guard.mjs' })).toBe(true);
+    expect(isOurs({ command: 'node .ai-guardrules/guard.mjs' })).toBe(true);
     expect(isOurs({ command: 'other' })).toBe(false);
     expect(addUnique(['a'], ['a', 'b'])).toEqual(['a', 'b']);
     expect(removeKnown(['a', 'b', 'c'], ['b'])).toEqual(['a', 'c']);

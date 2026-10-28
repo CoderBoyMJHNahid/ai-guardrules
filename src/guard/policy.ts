@@ -126,19 +126,19 @@ const DB_COMMANDS = [
 const DB_MCP = ['sql', 'query', 'database', 'postgres', 'mysql', 'mongo', 'supabase', 'neon', 'prisma', 'redis', 'sqlite', 'dynamo', 'firestore', 'bigquery', 'snowflake', 'planetscale', 'turso'];
 
 export const PROTECTED_PATHS = [
-  '.ai-rules/**',
+  '.ai-guardrules/**',
   '.claude/settings.json',
   '.claude/settings.local.json',
   '.cursor/hooks.json',
   '.cursor/cli.json',
-  '.cursor/rules/ai-rules.mdc',
+  '.cursor/rules/ai-guardrules.mdc',
   '.gemini/settings.json',
   '.windsurf/hooks.json',
-  '.windsurf/rules/ai-rules.md',
+  '.windsurf/rules/ai-guardrules.md',
   '.devin/hooks.json',
   '.codex/hooks.json',
   '.codex/config.toml',
-  '.clinerules/ai-rules.md',
+  '.clinerules/ai-guardrules.md',
   '.github/copilot-instructions.md',
   'CLAUDE.md',
   'GEMINI.md',
