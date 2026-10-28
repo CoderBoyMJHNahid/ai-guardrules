@@ -1,92 +1,211 @@
 # ai-rules
 
-One command to put shared rules, **enforced** hooks and guardrails in a project, for every popular AI coding agent.
+**Stop your AI coding agent from deleting files, leaking secrets or running risky commands. One command, any agent.**
+
+[![npm version](https://img.shields.io/npm/v/ai-rules.svg)](https://www.npmjs.com/package/ai-rules)
+[![license](https://img.shields.io/npm/l/ai-rules.svg)](https://github.com/CoderBoyMJHNahid/ai-rules/blob/main/LICENSE)
+[![node](https://img.shields.io/node/v/ai-rules.svg)](https://nodejs.org)
+[![CI](https://github.com/CoderBoyMJHNahid/ai-rules/actions/workflows/ci.yml/badge.svg)](https://github.com/CoderBoyMJHNahid/ai-rules/actions/workflows/ci.yml)
 
 ```sh
 npx ai-rules init
 ```
 
-It works on macOS, Linux and Windows, needs Node 20 or newer, and has no runtime service. Everything it installs lives in your repo, so your team gets the same protection after a `git pull`.
+Works with Claude Code, Cursor, Gemini CLI, Windsurf, Codex, GitHub Copilot and Cline. Runs on macOS, Linux and Windows. Needs Node 20 or newer. No server, no account, no telemetry: everything lives in your repo, so your whole team gets the same protection after a `git pull`.
 
-## What it does
+## Why you want this
 
-For each agent you choose, `init` writes two things:
+AI coding agents are powerful because they can run shell commands and edit files for you. That is also the risk. An agent can:
 
-1. **Rules** the agent reads (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursor/rules/`, ...). These are advice. An agent can ignore them.
-2. **Hooks** that run a small script (`.ai-rules/guard.mjs`) before every tool call. The script decides **allow**, **ask** or **deny**. This is enforcement. The agent cannot talk its way past it.
+- read your `.env` file or SSH keys,
+- run `rm -rf`, `git push --force` or `DROP TABLE`,
+- wander outside your project folder,
+- create or change files you never asked for.
 
-The default preset, `strict`, implements these six rules:
+Most tools try to stop this with a rules file ("please do not delete things"). That is only advice, and an agent can ignore it.
 
-| # | Rule | How it is enforced |
-|---|------|--------------------|
-| 1 | No command runs without your approval | Every shell command asks (read-only git is allowed without a prompt) |
-| 2 | Git is read-only, `gh` is blocked | Allowlist: `status`, `log`, `diff`, `show`, `blame`, `branch` (list), `rev-parse`, `ls-files`, `ls-tree`, `cat-file`, `grep`, `describe`, `shortlog`, `rev-list`, `merge-base`, `show-ref`, `remote -v`, `tag -l`, `config --get`, `check-ignore`. Everything else, and the whole `gh` CLI, is denied |
-| 3 | Never delete in a database; no database access without approval | SQL `DELETE`/`DROP`/`TRUNCATE`, Mongo `deleteMany`/`drop`, Redis `FLUSHALL` and similar are **always** denied. Database clients and database MCP tools ask |
-| 4 | Never delete a project file | `rm`, `unlink`, `rmdir`, `git rm`, `find -delete`, `shutil.rmtree`, `fs.rm`, PowerShell `Remove-Item`, `del`, ... are denied |
-| 5 | Stay inside the project folder | Paths are resolved (symlinks, `..`, `~`, env variables, Windows drives, UNC, ADS) and anything outside is denied |
-| 6 | No new files without approval | Creating a file asks. Editing an existing file is free |
+`ai-rules` does two things:
 
-The `standard` preset is lighter: it only enforces the four fixed guards (secrets, destructive commands, database deletes and protection of the guard files). All other guards are off.
+| | What it is | Can the agent ignore it? |
+|---|---|---|
+| **Rules** | Text files the agent reads (`AGENTS.md`, `CLAUDE.md`, `.cursor/rules/`, ...) | Yes, it is advice |
+| **Hooks** | A small script that runs **before every tool call** and answers `allow`, `ask` or `deny` | No, the action is blocked before it runs |
 
-Secrets (`.env*` except `.env.example`, `*.pem`, `*.key`, `*.p12`, SSH private keys, `.aws/credentials`, `.netrc`, `secrets/**`) and destructive commands (`rm -rf /`, `git push --force`, `mkfs`, `dd` to a device, fork bombs, ...) are blocked in **both** presets.
+```
+  AI agent wants to run a command or edit a file
+                      |
+                      v
+        .ai-rules/guard.mjs checks it
+                      |
+        +-------------+-------------+
+        |             |             |
+      allow          ask           deny
+   (runs now)   (you approve)   (blocked)
+```
+
+You write the setup once. It installs the right files for every agent you use.
 
 ## Quick start
 
 ```sh
-npx ai-rules init            # asks which agents and which preset (strict is the default)
-npx ai-rules init -y         # no questions: detected agents, strict
-npx ai-rules init --all      # every supported agent
-npx ai-rules doctor          # replays attack payloads through the installed hooks
+cd your-project
+npx ai-rules init
 ```
 
-Commit `.ai-rules/` and the generated hook configs.
+`init` asks two questions:
+
+1. **Which AI tools do you use here?** Tools it detects are pre-selected.
+2. **Which preset?** `strict` (recommended) or `standard`. See [Presets](#presets).
+
+Then it writes the files, replays attack payloads through the new hooks as a self-test, and prints the result. Your last step is to commit what it created (check with `git status`), so teammates get the same guardrails:
+
+```sh
+git add -A
+git commit -m "Add AI agent guardrails"
+```
+
+Other ways to run it:
+
+```sh
+npx ai-rules init -y          # no questions: detected tools, strict preset
+npx ai-rules init --all       # every supported agent
+npx ai-rules init --dry-run   # show what would change, write nothing
+npx ai-rules doctor           # prove the guard works on this machine
+```
+
+You can also install it globally (`npm install -g ai-rules`) and then use `ai-rules` instead of `npx ai-rules`.
+
+## What it looks like in practice
+
+With the default `strict` preset:
+
+| The agent tries to... | Result |
+|---|---|
+| Read `.env`, `id_rsa`, `*.pem`, `.aws/credentials` | Denied |
+| Run `rm -rf node_modules`, `git rm`, `find -delete` | Denied |
+| Run `git push`, `git commit`, or any `gh` command | Denied (git is read-only) |
+| Run `git status`, `git diff`, `git log` | Allowed |
+| Run `DELETE FROM users` or `DROP TABLE users` | Denied, always |
+| Run `psql`, `mysql`, `redis-cli`, or call a database tool | Asks you |
+| Run `npm test` or any other shell command | Asks you |
+| Create a new file | Asks you |
+| Edit a file that already exists | Allowed |
+| Touch a path outside the project (`../`, `~`, `/etc`) | Denied |
+| Edit `.ai-rules/` or the agent's hook settings to switch the guard off | Denied |
+
+When something is blocked or asks, you decide:
+
+```sh
+ai-rules allow "npm test"             # always allow this command
+ai-rules allow "npm test" --once      # allow it one time
+ai-rules allow "git push origin main" --for 30m
+```
+
+The agent cannot run these commands itself. Approvals are yours.
+
+## Supported agents
+
+| Agent | Protection | What is installed |
+|---|---|---|
+| Claude Code | **Enforced** | `PreToolUse` hook, `permissions.deny` rules, `CLAUDE.md` |
+| Cursor | **Enforced** | `.cursor/hooks.json`, `.cursor/cli.json` deny rules, an always-on rule |
+| Gemini CLI | **Enforced** | `BeforeTool` hook, `GEMINI.md` |
+| Windsurf (Devin Desktop) | **Enforced** | pre-run, pre-read, pre-write and pre-MCP hooks, an always-on rule |
+| Codex | **Enforced** | `PreToolUse` hook, sandbox and approval settings in `.codex/config.toml` |
+| GitHub Copilot | Advisory | `.github/copilot-instructions.md` |
+| Cline | Advisory | `.clinerules/ai-rules.md` |
+| Any `AGENTS.md` reader | Advisory | `AGENTS.md` (always written) |
+
+**Enforced** means a hook can block the action before it runs. **Advisory** means the agent is only asked to follow the rules, because that tool has no blocking hook we can rely on. `ai-rules status` and `ai-rules doctor` label each one.
+
+## Presets
+
+| | `strict` (default) | `standard` |
+|---|---|---|
+| Secrets (`.env`, keys, credentials) | Blocked | Blocked |
+| Destructive commands (`rm -rf /`, force push, `mkfs`, fork bombs) | Blocked | Blocked |
+| Database deletes (`DELETE`, `DROP`, `TRUNCATE`, `deleteMany`, `FLUSHALL`) | Blocked | Blocked |
+| Tampering with the guard itself | Blocked | Blocked |
+| Every shell command | Asks you | Allowed |
+| Git | Read-only, `gh` blocked | Allowed |
+| Deleting project files | Blocked | Allowed |
+| Leaving the project folder | Blocked | Allowed |
+| Creating new files | Asks you | Allowed |
+| Database clients and database MCP tools | Asks you | Allowed |
+
+**Which one?** Start with `strict` if you let agents run on code you care about. It asks often by design. If the prompts get tiring, approve the commands you trust with `ai-rules allow`, or switch to `standard` for secrets and destructive-command protection only.
+
+```sh
+npx ai-rules init --preset standard
+```
 
 ## Commands
 
-| Command | What it does |
-|---------|--------------|
-| `init [--tools a,b] [--preset strict\|standard] [--all] [-y] [--dry-run] [--force] [--local-wrapper]` | Install. Safe to run again; the second run changes nothing |
-| `update` | Refresh the guard after upgrading the package. Keeps your policy and custom files |
-| `lock` | Trust a hand edit to a guard file by refreshing the integrity hashes |
-| `remove [-y] [--keep-custom] [--all] [--dry-run]` | Uninstall everything we added. Your own content in shared files is kept |
-| `status` | What is installed, the integrity state, active grants and each guard mode |
-| `doctor [--ci]` | Self-test: replays about ten attack payloads per agent through the real hook and checks the guard fails closed |
-| `policy show` / `policy set <guard> <allow\|ask\|deny\|off>` | Change a guard mode |
-| `allow <pattern> [--once] [--for 30m] [--path]` | Approve a blocked or asked command (or a path glob) |
-| `allow-create <glob> [--once] [--for 2h]` | Approve creating files that match a glob |
-| `grants list` / `grants revoke <id> \| --all` | Manage approvals |
-| `rule add\|list\|remove` | Your own rules, written into every agent's rule file |
-| `guard add\|list\|remove\|test` | Your own enforced guards (can only make things stricter) |
-| `hook add\|list\|remove\|test` | Your own hook scripts, run by the guard (can only make things stricter) |
+Add `-C <folder>` to any command to run it against another project. Run `ai-rules --help` or `ai-rules <command> --help` any time.
 
-Use `-C <dir>` to run against another folder.
+### Set up and maintain
 
-### Approving things
+| Command | Use it to |
+|---|---|
+| `ai-rules init` | Install into this project. Safe to run again; a second run changes nothing |
+| `ai-rules status` | See what is installed, whether files were tampered with, active approvals and each guard's mode |
+| `ai-rules doctor` | Self-test: replay about ten attack payloads per agent through the real hooks |
+| `ai-rules update` | Refresh the guard after upgrading the package. Keeps your policy and custom files |
+| `ai-rules remove` | Uninstall everything `ai-rules` added. Your own content in shared files stays |
+| `ai-rules lock` | Accept a hand edit of a guard file by refreshing its integrity hash |
 
-Approvals are **yours**. The guard denies the `ai-rules` command itself and edits to `.ai-rules/`, so an agent cannot approve itself.
+Useful flags:
 
 ```sh
-ai-rules allow "npm test"                 # until you revoke it
-ai-rules allow "npm test" --once          # one use, used up only if the action really runs
-ai-rules allow "git push origin main" --for 30m
-ai-rules allow-create "docs/**"           # let agents create files under docs/
-ai-rules grants list
-ai-rules grants revoke <id>
+ai-rules init --tools claude,cursor      # only these agents
+ai-rules init --preset standard          # lighter preset
+ai-rules init --dry-run                  # preview
+ai-rules doctor --ci                     # exit non-zero on problems, for CI
+ai-rules remove --dry-run                # preview an uninstall
+ai-rules remove --keep-custom            # uninstall but keep .ai-rules/custom/
 ```
 
-A wildcard grant such as `npm test*` never covers chained text. `npm test; rm -rf x` needs its own approval.
+### Approve what was blocked
 
-Some verdicts are **fixed** and a grant does nothing for them: secrets, database deletes, destructive commands and tampering with the guard. `ai-rules allow` warns you when a pattern hits one of these.
+| Command | Use it to |
+|---|---|
+| `ai-rules allow "<command>"` | Approve a command. Add `--once` for one use or `--for 30m` / `2h` / `1d` for a time limit |
+| `ai-rules allow "<glob>" --path` | Approve a path outside the project boundary |
+| `ai-rules allow-create "<glob>"` | Let agents create files that match, for example `docs/**` |
+| `ai-rules grants list` | See active approvals |
+| `ai-rules grants revoke <id>` | Remove one approval. Use `--all` to remove every approval |
 
-### Your own rules, guards and hooks
+```sh
+ai-rules allow "npm test"
+ai-rules allow-create "docs/**" --for 2h
+ai-rules grants list
+ai-rules grants revoke --all
+```
+
+A wildcard like `npm test*` never covers chained text. `npm test; rm -rf x` needs its own approval.
+
+Some verdicts are **fixed** and cannot be approved: secrets, database deletes, destructive commands and tampering with the guard. `ai-rules allow` warns you if your pattern hits one.
+
+### Tune the protection
+
+```sh
+ai-rules policy show                    # list every guard and its mode
+ai-rules policy set newFiles allow      # stop asking before creating files
+ai-rules policy set commands off        # turn a guard off
+```
+
+Modes are `allow`, `ask`, `deny` and `off`. See the [guard table](#guards) for the names.
+
+### Add your own rules, guards and hooks
 
 Everything custom lives in `.ai-rules/custom/` and survives `update`.
 
 ```sh
-# Advice for agents, written to AGENTS.md, CLAUDE.md, GEMINI.md and the others
+# Advice: written into AGENTS.md, CLAUDE.md, GEMINI.md and the other rule files
 ai-rules rule add "Use pnpm, never npm"
+ai-rules rule list
 
-# Enforced: block a command
+# Enforced: block or ask about a command
 ai-rules guard add --id no-publish --command npm --match "publish*" \
   --decision deny --message "Publishing is done by CI"
 
@@ -94,130 +213,148 @@ ai-rules guard add --id no-publish --command npm --match "publish*" \
 ai-rules guard add --id lockfile --on write --path package.json \
   --decision deny --message "Do not edit package.json"
 
-# Enforced: run your own script before each shell command
+# Try a guard without running anything
+ai-rules guard test "npm publish"
+ai-rules guard test .env --read
+
+# Enforced: run your own script before every shell command
 ai-rules hook add --id lint-sql --event before-shell --run "node scripts/check-command.mjs"
 ai-rules hook test lint-sql --command "ls"
 ```
 
-Rules for customisation:
+Rules for custom guards and hooks:
 
 - The worst verdict wins (`deny` beats `ask` beats `allow`).
-- A custom `allow` can only relax a preset `ask`. It can never relax a `deny`, and never a fixed rule.
-- A hook gets the action as JSON on stdin. Exit `0` means no objection. Exit `2`, or printing `{"decision":"deny"}` or `{"decision":"ask"}`, restricts. **A crash, timeout, bad output or any other exit code blocks.** A hook can never make an action more permitted.
+- A custom `allow` can only relax an `ask`. It can never relax a `deny` or a fixed rule.
+- A hook receives the action as JSON on stdin. Exit `0` means no objection. Exit `2`, or printing `{"decision":"deny"}` or `{"decision":"ask"}`, restricts. A crash, timeout, bad output or any other exit code blocks. A hook can never make an action more permitted.
 
-## Presets and guards
+## FAQ
 
-`ai-rules policy show` lists every guard.
+**Does it need a server or an account?** No. It is a CLI that writes files into your repo. The guard is one dependency-free script, `.ai-rules/guard.mjs`.
 
-| Guard | strict | standard | Can be relaxed? |
-|-------|:------:|:--------:|:---------------:|
-| `commands` (every shell command) | ask | off | yes |
-| `git` (read-only allowlist, no `gh`) | deny | off | yes |
-| `database` (clients, database MCP) | ask | off | yes |
-| `fileDelete` | deny | off | yes |
-| `boundary` (outside the project) | deny | off | yes |
-| `newFiles` | ask | off | yes |
-| `interpreters` (inline `python -c`, `node -e`) | ask | off | yes |
-| `unknownTools` | ask | off | yes |
-| `unparseable` (commands we cannot analyse) | deny | off | yes |
-| `symlinks` | deny | off | yes |
-| `databaseDelete` | deny | deny | **never** |
-| `secrets` | deny | deny | **never** |
-| `destructive` | deny | deny | **never** |
-| `selfProtection` | deny | deny | **never** |
+**Can the agent approve things for itself?** No. The guard denies the `ai-rules` command and any edit to `.ai-rules/`, and the guard files are read-only.
 
-## Enforced vs advisory
+**Is this a sandbox?** No. See [Limits](#limits). For hard isolation, also run the agent in a container or VM.
 
-"Enforced" means a hook can block the action before it runs. "Advisory" means the agent is only asked to follow rules.
+**Does it work on Windows?** Yes. It analyses bash, zsh, PowerShell and `cmd.exe` commands, and handles drive letters, UNC paths and reserved device names. CI runs on macOS, Ubuntu and Windows.
 
-| Agent | Level | What is installed | `ask` supported by the hook? |
-|-------|-------|-------------------|------------------------------|
-| Claude Code | **enforced** | `PreToolUse` hook (`onFailure: block`), native `permissions.deny` rules, `CLAUDE.md` | yes |
-| Cursor | **enforced** | `hooks.json` (`beforeShellExecution`, `beforeMCPExecution`, `beforeReadFile`, `preToolUse`; all `failClosed`), `.cursor/cli.json` deny rules, always-on rule | shell and MCP only. Elsewhere `ask` becomes `deny` |
-| Gemini CLI | **enforced** | `BeforeTool` hook, `GEMINI.md` | no. `ask` becomes `deny` |
-| Windsurf (Devin Desktop) | **enforced** | pre-run, pre-read, pre-write and pre-MCP hooks, always-on rule | no. `ask` becomes `deny` |
-| Codex | **enforced** | `PreToolUse` hook, `approval_policy` and `workspace-write` sandbox in `.codex/config.toml` | no. `ask` becomes `deny` |
-| GitHub Copilot | advisory | `.github/copilot-instructions.md` | n/a |
-| Cline | advisory | `.clinerules/ai-rules.md` | n/a |
-| `AGENTS.md` | advisory | canonical rules read by Codex, Cursor, Copilot, Windsurf and others | n/a |
+**Strict mode asks too much.** Approve trusted commands with `ai-rules allow`, relax one guard with `ai-rules policy set`, or use the `standard` preset.
+
+**How do I upgrade?** `npm install -g ai-rules@latest` (or use `npx ai-rules@latest`), then `ai-rules update` in each project.
+
+**How do I uninstall?** `ai-rules remove`. It deletes only what it added.
+
+**Will it overwrite my `AGENTS.md` or settings?** No. Our content sits between `ai-rules:start` and `ai-rules:end` markers. Everything outside the markers stays exactly as you wrote it, including line endings and JSON comments. Files that existed before are copied to `.ai-rules/backups/` once.
+
+## How it resists bypass
+
+- **Fails closed.** If the guard crashes, cannot read its input, cannot find its files or times out, the action is blocked.
+- **Integrity lock.** `.ai-rules/lock.json` stores SHA-256 hashes of the guard, policy and custom files. Any mismatch blocks everything until you run `ai-rules lock` or `ai-rules update`.
+- **Self-protection.** Agents cannot read or edit `.ai-rules/`, the agent hook configs or the rule files, and cannot run `ai-rules`.
+- **Two locks where possible.** Claude `permissions.deny`, Cursor CLI deny rules and the Codex sandbox are configured too.
+- **Real shell analysis, not string matching.** Commands are parsed as bash, PowerShell or cmd. It unwraps `sudo`, `env`, `timeout`, `nohup`, `xargs`, `find -exec`, `npx`, `sh -c`, `cmd /c`, `powershell -EncodedCommand`, `wsl`, `eval`, `source`, heredocs, command substitution, pipes and chains. Quoting tricks such as `r""m` or `c\at .env` are resolved first. Anything it cannot understand is treated as dangerous.
+- **Real path resolution.** Symlinks, `..`, `~`, `$HOME`, `%USERPROFILE%` and Windows alternate data streams are resolved before the secret and boundary checks.
+- **Inline code is scanned.** `python -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`, `deno eval` and database `-c` / `--eval` strings are checked for deletes, secret reads and escapes.
+- **Tested.** Over 2,000 tests, including obfuscated attack corpora, property-based tests and real-process contract tests for each agent.
+
+`ai-rules doctor` runs a live version of this on your machine.
+
+## Limits
+
+Please read these before relying on it.
+
+- **No tool can promise a perfect shell sandbox.** A hook sees the command text before it runs. A sufficiently creative command could still evade analysis. That is why unparseable input is denied, why `strict` asks for every command, and why native layers are added.
+- **Advisory agents can ignore rules.** Copilot and Cline have no blocking hooks we can rely on.
+- **Hook formats are taken from vendor documentation**, checked 2026-10-28, not captured from live sessions. Agents change hook formats. If one does, `doctor` will not know. Please [open an issue](https://github.com/CoderBoyMJHNahid/ai-rules/issues) with a captured payload. Details: [docs/agent-schemas.md](https://github.com/CoderBoyMJHNahid/ai-rules/blob/main/docs/agent-schemas.md).
+- **Hooks use a relative path** (`node .ai-rules/guard.mjs`). If an agent starts hooks from another folder, the script is not found. Claude and Cursor then block. Gemini, Windsurf and Codex treat only exit `2` as a block, so a missing script there may fail open. Claude users can run `ai-rules init --local-wrapper` for a stricter machine-local wrapper.
+- **Codex asks you to trust new hooks once.** Run `/hooks` in Codex after `init`.
+- **You can always turn it off.** `ai-rules remove`, or `disableAllHooks` in an agent's settings. The guardrails stop the agent, not you.
+- **Strict is noisy by design.** See the FAQ.
+
+## Reference
+
+### Guards
+
+`ai-rules policy show` lists every guard. Change one with `ai-rules policy set <guard> <allow|ask|deny|off>`.
+
+| Guard | What it covers | strict | standard | Can be relaxed? |
+|---|---|:---:|:---:|:---:|
+| `commands` | Every shell command | ask | off | yes |
+| `git` | Read-only git allowlist, no `gh` | deny | off | yes |
+| `database` | Database clients and database MCP tools | ask | off | yes |
+| `fileDelete` | `rm`, `unlink`, `git rm`, `find -delete`, `Remove-Item`, `shutil.rmtree`, ... | deny | off | yes |
+| `boundary` | Paths outside the project | deny | off | yes |
+| `newFiles` | Creating files | ask | off | yes |
+| `interpreters` | Inline `python -c`, `node -e`, ... | ask | off | yes |
+| `unknownTools` | Tools and MCP calls the guard does not know | ask | off | yes |
+| `unparseable` | Commands that cannot be analysed | deny | off | yes |
+| `symlinks` | Creating links | deny | off | yes |
+| `databaseDelete` | SQL `DELETE`/`DROP`/`TRUNCATE`, Mongo `deleteMany`/`drop`, Redis `FLUSHALL` | deny | deny | never |
+| `secrets` | `.env*` (except `.env.example`), `*.pem`, `*.key`, `*.p12`, SSH keys, `.aws/credentials`, `.netrc`, `secrets/**` | deny | deny | never |
+| `destructive` | `rm -rf /`, `git push --force`, `mkfs`, `dd` to a device, fork bombs | deny | deny | never |
+| `selfProtection` | `.ai-rules/`, hook configs and rule files | deny | deny | never |
+
+Git commands allowed in `strict`: `status`, `log`, `diff`, `show`, `blame`, `branch` (list), `rev-parse`, `ls-files`, `ls-tree`, `cat-file`, `grep`, `describe`, `shortlog`, `rev-list`, `merge-base`, `show-ref`, `remote -v`, `tag -l`, `config --get`, `check-ignore`.
+
+### Ask support per agent
 
 When a hook cannot ask, the action is blocked and you approve it with `ai-rules allow`. Then the agent can retry.
+
+| Agent | Can the hook ask you? |
+|---|---|
+| Claude Code | Yes |
+| Cursor | Shell and MCP calls. Elsewhere `ask` becomes `deny` |
+| Gemini CLI, Windsurf, Codex | No. `ask` becomes `deny` |
 
 ### Operating systems
 
 | | macOS | Linux | Windows |
 |---|:---:|:---:|:---:|
 | CLI and guard | yes | yes | yes |
-| bash / zsh / sh analysis | yes | yes | yes (Git Bash, WSL commands are unwrapped) |
+| bash / zsh / sh analysis | yes | yes | yes (Git Bash and WSL commands are unwrapped) |
 | PowerShell analysis | yes (`pwsh`) | yes (`pwsh`) | yes |
 | `cmd.exe` analysis | yes | yes | yes |
 | Case-insensitive paths | yes | no | yes |
-| Windows paths (drive letters, UNC, ADS, reserved device names) | yes | yes | yes |
-| Read-only guard files | `chmod 444` | `chmod 444` | read-only attribute (via Node `chmod`) |
+| Read-only guard files | `chmod 444` | `chmod 444` | read-only attribute |
 
-The CI workflow runs the full suite on macOS, Ubuntu and Windows with Node 20 and 22.
-
-## How it is hard to bypass
-
-- **Fail closed.** If the guard crashes, cannot parse its input, cannot find its files, or times out, the action is blocked. Claude uses `onFailure: block` and Cursor uses `failClosed`.
-- **Integrity lock.** `.ai-rules/lock.json` stores SHA-256 hashes of the guard, policy and custom files (line endings are normalised so git autocrlf does not trip it). Any mismatch, a missing or unreadable lock, or a new unlocked file blocks **everything** until you run `ai-rules lock` or `ai-rules update`.
-- **Self-protection.** Agents cannot read or edit `.ai-rules/`, the agent hook configs, or rule files, and cannot run `ai-rules`. The files are also marked read-only.
-- **Native layers.** Where an agent has its own permission system (Claude `permissions.deny`, Cursor CLI deny rules, Codex sandbox) we configure it too, so there are two independent locks.
-- **Shell analysis, not string matching.** Commands are parsed as bash, PowerShell or cmd. We unwrap `sudo`, `env`, `timeout`, `nohup`, `xargs`, `find -exec`, `npx`, `sh -c`, `cmd /c`, `powershell -EncodedCommand`, `wsl`, `eval`, `source`, heredocs, here-strings, command substitution, pipes and chains. Quoting tricks (`r""m`, `c\at .env`) are resolved before matching. Anything we cannot resolve is treated as dangerous (`unparseable`), not allowed.
-- **Real path resolution.** Symlinks, `..`, `~`, `$HOME`, `%USERPROFILE%`, Windows alternate data streams (`.env::$DATA`) and device or reserved names are resolved before the boundary and secret checks.
-- **Inline code.** `python -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`, `deno eval` and database `-c`/`--eval` strings are scanned for deletes, secret reads and escapes.
-- **Tests.** About 2,150 tests, including an adversarial corpus of obfuscated attacks, property-based tests (random wrapper stacks, quote noise, random strings must never crash or allow), and real-process contract tests for each agent.
-
-`ai-rules doctor` runs a live version of this on your machine.
-
-## Limits (please read)
-
-- **No tool can promise a perfect shell sandbox.** A hook sees the command text before it runs. A sufficiently creative command could still evade analysis. That is why unparseable input is denied, why `strict` asks for every command, and why we add native layers. For hard isolation, run the agent in a container or VM as well.
-- **Advisory agents can ignore rules.** Copilot and Cline have no blocking hooks we can rely on. Their files are guidance only. `doctor` and `status` label them as advisory.
-- **Hook fixtures come from documentation.** The payload shapes in `docs/agent-schemas.md` were taken from each vendor's public docs (checked 2026-10-28), not captured from live agent sessions. Agents change hook formats. If one does, `doctor` or the contract tests will not know. Please open an issue with a captured payload.
-- **The hook path is relative.** Hooks run `node .ai-rules/guard.mjs`, relative to the project. If an agent starts hooks from another working directory, the script is not found. Claude and Cursor then block (fail closed). Gemini, Windsurf and Codex only treat exit `2` as a block, so a missing script there may fail open. Claude users can run `init --local-wrapper` to write a stricter machine-local wrapper to `.claude/settings.local.json`.
-- **Codex asks you to trust new hooks once.** Run `/hooks` in Codex after `init`.
-- **A user can always turn it off.** `ai-rules remove`, or `disableAllHooks` in an agent's settings (enterprise managed settings can forbid that). The guardrails stop the agent, not you.
-- **Strict is noisy by design.** Every command asks. If that is too much, use `ai-rules allow` for the commands you trust, or choose `standard`.
-
-## Tested versions
-
-| Agent | Documented schema checked | Live capture |
-|-------|---------------------------|:------------:|
-| Claude Code | 2026-10-28 | no |
-| Cursor | 2026-10-28 | no |
-| Gemini CLI | 2026-10-28 | no |
-| Windsurf / Devin Desktop | 2026-10-28 | no |
-| Codex | 2026-10-28 | no |
-
-## Files `init` creates
+### Files `init` creates
 
 ```
 .ai-rules/
   guard.mjs            the enforcement script (zero dependencies, read-only)
   policy.json          guard modes (read-only)
   lock.json            integrity hashes (read-only)
-  manifest.json        what we installed, so remove is exact
+  manifest.json        what was installed, so remove is exact
   grants.json          your approvals
   custom/              your own rules, guards and hooks
-  backups/             one-time copies of files that existed before we touched them
+  backups/             one-time copies of files that existed before
 ```
 
-Plus, depending on the agents: `.claude/settings.json`, `.cursor/hooks.json`, `.cursor/cli.json`, `.cursor/rules/ai-rules.mdc`, `.gemini/settings.json`, `.devin/hooks.json`, `.codex/hooks.json`, `.codex/config.toml`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.clinerules/ai-rules.md`, `.windsurf/rules/ai-rules.md`, and managed blocks in `.gitignore` and `.gitattributes`.
+Plus, depending on the agents you pick: `.claude/settings.json`, `.cursor/hooks.json`, `.cursor/cli.json`, `.cursor/rules/ai-rules.mdc`, `.gemini/settings.json`, `.devin/hooks.json`, `.codex/hooks.json`, `.codex/config.toml`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`, `.clinerules/ai-rules.md`, `.windsurf/rules/ai-rules.md`, and managed blocks in `.gitignore` and `.gitattributes`.
 
-Our content in shared files sits between `ai-rules:start` and `ai-rules:end` markers. Everything outside the markers is left exactly as you wrote it, including line endings and JSON comments.
+### Tested versions
 
-## Development
+| Agent | Documented schema checked | Live capture |
+|---|---|:---:|
+| Claude Code | 2026-10-28 | no |
+| Cursor | 2026-10-28 | no |
+| Gemini CLI | 2026-10-28 | no |
+| Windsurf / Devin Desktop | 2026-10-28 | no |
+| Codex | 2026-10-28 | no |
+
+## Contributing and development
 
 ```sh
+git clone https://github.com/CoderBoyMJHNahid/ai-rules.git
+cd ai-rules
 npm install
 npm run build        # dist/cli.js and the standalone dist/guard.mjs
-npm test             # vitest (builds first)
+npm test             # vitest
 npm run typecheck
 ```
 
-Publishing runs `typecheck`, `build` and the tests through `prepublishOnly`, with npm provenance enabled.
+Bug reports and captured agent hook payloads are welcome in the [issue tracker](https://github.com/CoderBoyMJHNahid/ai-rules/issues).
 
 ## License
 
-MIT
+[MIT](https://github.com/CoderBoyMJHNahid/ai-rules/blob/main/LICENSE)
